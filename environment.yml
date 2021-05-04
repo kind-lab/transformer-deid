@@ -1,0 +1,20 @@
+name: transformer-deid
+channels:
+  - defaults
+  - conda-forge
+  - pytorch
+dependencies:
+  - jupyter
+  - nltk
+  - mpmath
+  - numpy
+  - pandas
+  - pytest
+  - pytorch
+  - scikit-learn
+  - spacy
+  - sympy
+  - tqdm
+  - pip
+  - pytest
+  - yapf
