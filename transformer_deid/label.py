@@ -35,4 +35,3 @@ class Label(object):
         contains_stop = ((self.start + self.length) >=
                          start) & ((self.start + self.length) < stop)
         return contains_start | contains_stop
-

@@ -1,20 +1,28 @@
 from pathlib import Path
 from typing import List, Optional, Union, TextIO
+from importlib.resources import open_text
 import os
+from collections import OrderedDict
 import csv
+import json
 
 import torch
 
 from transformer_deid.label import Label
 
-
 class DeidTask(object):
     """Utility class for loading and preparing dataset from disk."""
-    def __init__(self, task_name, data_dir):
+    def __init__(self, task_name, data_dir, label_transform=None):
         """Initialize a data processor with the location of the data."""
         self.task_name = task_name
         self.data_dir = Path(data_dir)
 
+        # transform the labels - used in the label extraction function
+        if label_transform is not None:
+            self.label_map = self.get_label_map(label_transform)
+        else:
+            self.label_map = None
+        
         # load the train/test data from file
         # these are lists of dicts, each dict has three keys: guid, text, tags
         self.train = self.load_data(self.data_dir / 'train')
@@ -25,6 +33,22 @@ class DeidTask(object):
         self.label2id = {tag: id for id, tag in enumerate(self.labels)}
         self.id2label = {id: tag for tag, id in self.label2id.items()}
 
+    def get_label_map(self, transform):
+        with open_text('transformer_deid', 'label.json') as fp:
+            label_map = json.load(fp)
+        
+        # label_membership has different label transforms as keys
+        if transform not in label_map:
+            raise KeyError('Unable to find label transform %s in label.json' % transform)
+        label_map = label_map[transform]
+    
+        # label_map has items "harmonized_label": ["label 1", "label 2", ...]
+        # invert this for the final label mapping
+        return {
+            label: harmonized_label
+            for harmonized_label, original_labels in label_map.items()
+            for label in original_labels
+        }
 
     def get_labels(self):
         """Gets the list of labels for this data set."""
@@ -60,6 +84,12 @@ class DeidTask(object):
         """Reads a comma separated value file."""
         return self._read_file(input_file, delimiter=',', quotechar=quotechar)
 
+    def _map_label(self, entity_type):
+        if self.label_map is not None:
+            return self.label_map[entity_type]
+        else:
+            return entity_type
+
     def load_label(self, filename):
         """
         Loads annotations from a CSV file.
@@ -77,16 +107,25 @@ class DeidTask(object):
             ]
 
             # iterate through the CSV and load in the labels
-            labels = [
-                Label(
-                    entity_type=row[idx[0]],
-                    start=int(row[idx[1]]),
-                    length=int(row[idx[2]]) - int(row[idx[1]]),
-                    entity=row[idx[3]]
-                ) for row in csvreader
-            ]
+            if self.label_map is not None:
+                labels = [
+                    Label(
+                        entity_type=self.label_map[row[idx[0]]],
+                        start=int(row[idx[1]]),
+                        length=int(row[idx[2]]) - int(row[idx[1]]),
+                        entity=row[idx[3]]
+                    ) for row in csvreader
+                ]
+            else:
+                labels = [
+                    Label(
+                        entity_type=row[idx[0]],
+                        start=int(row[idx[1]]),
+                        length=int(row[idx[2]]) - int(row[idx[1]]),
+                        entity=row[idx[3]]
+                    ) for row in csvreader
+                ]
 
-        # transform the labels as appropriate
         return labels
 
     def load_data(self, path) -> dict:
