@@ -3,9 +3,11 @@ channels:
   - defaults
   - conda-forge
   - pytorch
+  - nvidia
 dependencies:
   - jupyter
   - nltk
+  - cudatoolkit=11.1
   - mpmath
   - numpy
   - pandas
@@ -15,6 +17,8 @@ dependencies:
   - spacy
   - sympy
   - tqdm
-  - pip
   - pytest
   - yapf
+  - pip
+  - pip:
+    - transformers
