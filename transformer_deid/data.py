@@ -5,7 +5,7 @@ import csv
 
 import torch
 
-from transformer_deid.tokenization import Label
+from transformer_deid.label import Label
 
 
 class DeidTask(object):

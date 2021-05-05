@@ -1,43 +1,7 @@
 from typing import List, Optional, Union, TextIO
 from bisect import bisect_left, bisect_right
 
-
-class Label(object):
-    """Base class for a label.
-
-    A label contains four attributes of primary interest:
-        * entity_type - the type of entity which is labeled
-        * start - the start offset of the label in the source text
-        * length - the length of the label in the source text
-        * entity - the actual text of the entity
-    """
-    def __init__(self, entity_type, start, length, entity):
-        """Initialize a data processor with the location of the data."""
-        self.entity_type = entity_type
-        self.start = start
-        self.length = length
-        self.entity = entity
-
-    def __repr__(self):
-        return f'Label({self.entity_type}, {self.start}, {self.length}, {self.entity})'
-
-    def map_entity_type(self, mapping, force_upper=True):
-        if force_upper:
-            self.entity_type = mapping[self.entity_type.upper()]
-        else:
-            self.entity_type = mapping[self.entity_type]
-
-    def contains(self, i):
-        """Returns true if any label contains the offset."""
-        return (self.start >= i) & ((self.start + self.length) < i)
-
-    def overlaps(self, start, stop):
-        """Returns true if any label contains the start/stop offset."""
-        contains_start = (self.start >= start) & (self.start < stop)
-        contains_stop = ((self.start + self.length) >=
-                         start) & ((self.start + self.length) < stop)
-        return contains_start | contains_stop
-
+from transformer_deid.label import Label
 
 
 def encode_tags(tags, encodings, tag2id):
