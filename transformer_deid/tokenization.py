@@ -16,7 +16,7 @@ def assign_tags(
     labels,
     pad_token_label='PAD',
     default_label='O',
-    label_offset_shift=0
+    label_offset=None
 ) -> list:
     """
     Assign labels to tokens in tokenized text.
@@ -24,7 +24,7 @@ def assign_tags(
     Effectively creates a list the same size as the encodings with the label names.
     Accomplishes this with the offset_mapping.
 
-    label_offset_shift: subtract this off label indices. Helps facilitate slicing
+    label_offset: subtract this off label indices. Helps facilitate slicing
     documents into sub-parts.
     """
 
@@ -33,6 +33,11 @@ def assign_tags(
     # number of input examples
     N = len(encodings.encodings)
     for t in range(N):
+        if label_offset is None:
+            label_offset_shift = 0
+        else:
+            label_offset_shift = label_offset[t]
+
         token_labels.append(
             assign_tags_to_single_text(
                 encodings[t],
