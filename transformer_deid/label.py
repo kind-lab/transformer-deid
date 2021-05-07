@@ -35,3 +35,18 @@ class Label(object):
         contains_stop = ((self.start + self.length) >=
                          start) & ((self.start + self.length) < stop)
         return contains_start | contains_stop
+
+
+def convert_to_bio_scheme(tokens: list) -> list:
+    def b_or_i(w, w_prev):
+        if w == 'O':
+            return 'O'
+        elif w == w_prev:
+            return f'I-{w}'
+        else:
+            return f'B-{w}'
+
+    return [
+        [b_or_i(w, None if i == 0 else sequence[i-1]) for i, w in enumerate(sequence)]
+        for sequence in tokens
+    ]
