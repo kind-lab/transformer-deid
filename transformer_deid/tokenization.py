@@ -103,6 +103,69 @@ def assign_tags_to_single_text(
 
     return token_labels
 
+def split_long_sequences(texts, labels, tokenizer):
+    # tokenize the text
+    encodings = tokenizer(texts, add_special_tokens=False)
+    seq_len = tokenizer.max_len_single_sentence
+
+    # identify the start/stop offsets of the new text
+    sequence_offsets = []
+    logger.info('Determining offsets for splitting long segments.')
+    for i, encoded in tqdm(enumerate(encodings.encodings), total=len(encodings.encodings)):
+        offsets = [o[0] for o in encoded.offsets]
+        token_sw = [False] + [
+            encoded.word_ids[i + 1] == encoded.word_ids[i]
+            for i in range(len(encoded.word_ids) - 1)
+        ]
+        # iterate through text and add create new subsets of the text
+        start = 0
+        subseq = []
+        while start < len(offsets):
+            # ensure we do not start on a sub-word token
+            while token_sw[start]:
+                start -= 1
+
+            stop = start + seq_len
+            if stop < len(offsets):
+                # ensure we don't split sequences on a sub-word token
+                # do this by shortening the current sequence
+                while token_sw[stop]:
+                    stop -= 1
+            else:
+                # end the sub sequence at the end of the text
+                stop = len(offsets)
+
+            subseq.append(start)
+
+            # update start of next sequence to be end of current one
+            start = stop
+        
+        sequence_offsets.append(subseq)
+
+    
+    new_text = []
+    new_labels = []
+    label_offsets = []
+
+    logger.info('Splitting text.')
+    for i, subseq in tqdm(enumerate(sequence_offsets), total=len(encodings.encodings)):
+        for j, start in enumerate(subseq):
+            if j + 1 >= len(subseq):
+                stop = len(encodings[i])
+            else:
+                stop = subseq[j+1]
+            
+            # decode into text
+            new_text.append(tokenizer.decode(encodings[i].ids[start:stop]))
+
+            # replicate labels across examples
+            new_labels.append(labels[i])
+
+            # add the offset of the token in the original text
+            label_offsets.append(encodings[i].offsets[start][0])
+
+
+    return new_text, new_labels, label_offsets
 
 def expand_id_to_token(token_pred, ignore_value=None):
     # get most frequent label_id for this token
