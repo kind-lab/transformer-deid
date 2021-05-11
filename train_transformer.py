@@ -99,6 +99,20 @@ def main():
     logger.info("***** Running training *****")
     logger.info("  Num examples = %d", len(train_dataset))
     logger.info("  Num Epochs = %d", training_args.num_train_epochs)
+    
+    # log top 5 examples
+    for i in range(min(len(train_dataset), 5)):
+        input_ids, attention_mask, token_type_ids, label_ids, labels = train_dataset.get_example(
+            i, deid_task.id2label
+        )
+        tokens = tokenizer.convert_ids_to_tokens(input_ids)
+        logger.info("*** Example %d ***", i)
+        logger.info("tokens: %s", " ".join(tokens))
+        logger.info("labels: %s", " ".join(labels))
+        logger.info("input_ids: %s", " ".join(map(str, input_ids)))
+        logger.info("label_ids: %s", " ".join(map(str, label_ids)))
+        logger.info("input_mask: %s", " ".join(map(str, attention_mask)))
+
     trainer.train()
 
     trainer.save_model(f'results/{task_name}_DistilBert_Model')
