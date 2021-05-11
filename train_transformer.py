@@ -30,11 +30,6 @@ def main():
     train_texts, train_labels = deid_task.train['text'], deid_task.train['ann']
     test_texts, test_labels = deid_task.test['text'], deid_task.test['ann']
 
-    # create a validation set
-    train_texts, val_texts, train_labels, val_labels = train_test_split(
-        train_texts, train_labels, test_size=.2
-    )
-
     tokenizer = DistilBertTokenizerFast.from_pretrained('distilbert-base-cased')
     # TODO: ensure we split longer documents
     # few different ways to do this
@@ -49,8 +44,8 @@ def main():
         padding=True,
         truncation=True
     )
-    val_encodings = tokenizer(
-        val_texts,
+    test_encodings = tokenizer(
+        test_texts,
         is_split_into_words=False,
         return_offsets_mapping=True,
         padding=True,
@@ -59,19 +54,19 @@ def main():
 
     # use the offset mappings in train_encodings to assign labels to tokens
     train_tags = assign_tags(train_encodings, train_labels)
-    val_tags = assign_tags(val_encodings, val_labels)
+    test_tags = assign_tags(test_encodings, test_labels)
 
     # encodings are dicts with three elements:
     #   'input_ids', 'attention_mask', 'offset_mapping'
     # these are used as kwargs to model training later
     train_labels = encode_tags(train_tags, train_encodings, deid_task.label2id)
-    val_labels = encode_tags(val_tags, val_encodings, deid_task.label2id)
+    test_labels = encode_tags(test_tags, test_encodings, deid_task.label2id)
 
     # prepare a dataset compatible with Trainer module
     train_encodings.pop("offset_mapping")
-    val_encodings.pop("offset_mapping")
+    test_encodings.pop("offset_mapping")
     train_dataset = DeidDataset(train_encodings, train_labels)
-    val_dataset = DeidDataset(val_encodings, val_labels)
+    test_dataset = DeidDataset(test_encodings, test_labels)
 
     model = DistilBertForTokenClassification.from_pretrained(
         'distilbert-base-cased', num_labels=len(deid_task.labels)
