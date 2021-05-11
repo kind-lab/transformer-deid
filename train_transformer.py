@@ -8,9 +8,11 @@ from sklearn.model_selection import train_test_split
 from transformers import DistilBertTokenizerFast
 from transformers import DistilBertForTokenClassification
 from transformers import Trainer, TrainingArguments
+from datasets import load_metric
 
 # local packages
 from transformer_deid.data import DeidDataset, DeidTask
+from transformer_deid.evaluation import compute_metrics
 from transformer_deid.tokenization import assign_tags, encode_tags
 
 
@@ -113,6 +115,16 @@ def main():
     trainer.save_model(f'results/{task_name}_DistilBert_Model')
 
     trainer.evaluate()
+
+    predictions, labels, _ = trainer.predict(test_dataset)
+    predicted_label = np.argmax(predictions, axis=2)
+
+    curr_dir = Path(__file__).parent
+    metric_dir = str((curr_dir / "transformer_deid/token_evaluation.py").absolute())
+    metric = load_metric(metric_dir)
+    results = compute_metrics(predictions, labels, deid_task.labels, metric=metric)
+
+    print(results)
 
 
 if __name__ == '__main__':
