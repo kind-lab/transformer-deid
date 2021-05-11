@@ -1,4 +1,5 @@
-import importlib
+import warnings
+
 from typing import List, Optional, Union
 import numpy as np
 
@@ -75,29 +76,29 @@ class TokenEvaluation(datasets.Metric):
             reference_urls=["https://github.com/alistairewj/transformers-deid"]
         )
 
-    def _safely_return_value(zero_division):
-        if zero_division != 'warn':
-            return zero_division
+    def _safely_return_value(self):
+        if self.zero_division != 'warn':
+            return self.zero_division
         else:
             warnings.warn('Division by zero.', UndefinedMetricWarning, stacklevel=2)
             return 0
 
-    def _precision(true_positive, false_positive, zero_division: Union[str, int]='warn'):
+    def _precision(self, true_positive, false_positive):
         denom = np.sum(true_positive) + np.sum(false_positive)
         if denom == 0:
-            return _safely_return_value(zero_division)
+            return self._safely_return_value()
         return np.sum(true_positive) / denom
 
-    def _recall(true_positive, positive, zero_division: Union[str, int]='warn'):
+    def _recall(self, true_positive, positive):
         denom = np.sum(positive)
         if denom == 0:
-            return _safely_return_value(zero_division)
+            return self._safely_return_value()
         return np.sum(true_positive) / denom
 
-    def _f1(precision, recall, zero_division: Union[str, int]='warn'):
+    def _f1(self, precision, recall):
         denom = precision + recall
         if denom == 0:
-            return _safely_return_value(zero_division)
+            return self._safely_return_value()
         return 2*precision*recall / denom
 
     def _compute(
@@ -107,6 +108,8 @@ class TokenEvaluation(datasets.Metric):
         sample_weight: Optional[List[int]] = None,
         zero_division: Union[str, int] = "warn",
     ):
+        self.zero_division = zero_division
+
         # extract all possible entities
         predicted_entities = set([entity for entities in predictions for entity in entities])
         reference_entities = set([entity for entities in predictions for entity in entities])
@@ -137,9 +140,9 @@ class TokenEvaluation(datasets.Metric):
                 label_tp.append(tp)
                 label_fp.append(fp)
             
-            prec = _precision(label_tp, label_fp)
-            recall =  _recall(label_tp, label_pos)
-            f1 = _f1(prec, recall)
+            prec = self._precision(label_tp, label_fp)
+            recall =  self._recall(label_tp, label_pos)
+            f1 = self._f1(prec, recall)
 
             # upweight samples if requested
             if sample_weight is not None:
@@ -162,9 +165,9 @@ class TokenEvaluation(datasets.Metric):
 
         
         # micro average
-        prec = _precision(all_tp, all_fp)
-        recall =  _recall(all_tp, all_pos)
-        f1 = _f1(prec, recall)
+        prec = self._precision(all_tp, all_fp)
+        recall =  self._recall(all_tp, all_pos)
+        f1 = self._f1(prec, recall)
         scores["overall_precision"] = prec
         scores["overall_recall"] = recall
         scores["overall_f1"] = f1
