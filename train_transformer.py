@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 import re
 
@@ -12,6 +13,13 @@ from transformers import Trainer, TrainingArguments
 from transformer_deid.data import DeidDataset, DeidTask
 from transformer_deid.tokenization import assign_tags, encode_tags
 
+
+logging.basicConfig(
+    format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
+    datefmt='%m/%d/%Y %H:%M:%S',
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
 
 def main():
     task_name = 'i2b2_2014'
@@ -87,6 +95,10 @@ def main():
         eval_dataset=val_dataset
     )
 
+
+    logger.info("***** Running training *****")
+    logger.info("  Num examples = %d", len(train_dataset))
+    logger.info("  Num Epochs = %d", training_args.num_train_epochs)
     trainer.train()
 
     trainer.save_model(f'results/{task_name}_DistilBert_Model')
