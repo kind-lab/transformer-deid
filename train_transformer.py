@@ -33,11 +33,16 @@ def main():
     test_texts, test_labels = deid_task.test['text'], deid_task.test['ann']
 
     tokenizer = DistilBertTokenizerFast.from_pretrained('distilbert-base-cased')
-    # TODO: ensure we split longer documents
-    # few different ways to do this
-    #   - split long documents into enough sub-docs to fit everything
-    #   - randomly sample from a given document
-    #   - same as before and up weight longer documents in selecting examples for batch
+
+    # split text/labels into multiple examples
+    # (1) tokenize text
+    # (2) identify split points
+    # (3) output text as it was originally
+    # train_texts, train_labels, train_sequence_offsets = split_long_sequences(train_texts, train_labels, tokenizer)
+    # test_texts, test_labels, test_sequence_offsets = split_long_sequences(test_texts, test_labels, tokenizer)
+    
+    # if we don't want to split long sequences, just pass None/None
+    train_sequence_offsets, test_sequence_offsets = None, None
 
     train_encodings = tokenizer(
         train_texts,
@@ -55,8 +60,8 @@ def main():
     )
 
     # use the offset mappings in train_encodings to assign labels to tokens
-    train_tags = assign_tags(train_encodings, train_labels)
-    test_tags = assign_tags(test_encodings, test_labels)
+    train_tags = assign_tags(train_encodings, train_labels, label_offset=train_sequence_offsets)
+    test_tags = assign_tags(test_encodings, test_labels, label_offset=test_sequence_offsets)
 
     # encodings are dicts with three elements:
     #   'input_ids', 'attention_mask', 'offset_mapping'
