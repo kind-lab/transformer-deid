@@ -26,7 +26,9 @@ logger = logging.getLogger(__name__)
 def main():
     task_name = 'i2b2_2014'
     deid_task = DeidTask(
-        task_name, data_dir=f'/home/alistairewj/git/deid-gs/{task_name}'
+        task_name,
+        data_dir=f'/home/alistairewj/git/deid-gs/{task_name}',
+        label_transform='base'
     )
 
     train_texts, train_labels = deid_task.train['text'], deid_task.train['ann']
