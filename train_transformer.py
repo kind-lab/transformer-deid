@@ -94,7 +94,7 @@ def main():
         model=model,
         args=training_args,
         train_dataset=train_dataset,
-        eval_dataset=val_dataset
+        eval_dataset=test_dataset
     )
 
 
@@ -104,10 +104,14 @@ def main():
     
     # log top 5 examples
     for i in range(min(len(train_dataset), 5)):
-        input_ids, attention_mask, token_type_ids, label_ids, labels = train_dataset.get_example(
+        input_ids, attention_mask, token_type_ids, label_ids = train_dataset.get_example(
             i, deid_task.id2label
         )
+
+        # convert ids into human interpretable values
         tokens = tokenizer.convert_ids_to_tokens(input_ids)
+        labels = ['-100' if l == -100 else deid_task.id2label[l] for l in label_ids]
+
         logger.info("*** Example %d ***", i)
         logger.info("tokens: %s", " ".join(tokens))
         logger.info("labels: %s", " ".join(labels))

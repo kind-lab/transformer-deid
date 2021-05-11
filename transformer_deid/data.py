@@ -177,9 +177,8 @@ class DeidDataset(torch.utils.data.Dataset):
 
     def get_example(self, i, id2label):
         """Output a tuple for the given index."""
-        input_ids = dataset[i]['input_ids'].tolist()
-        attention_mask = dataset[i]['attention_mask'].tolist()
-        token_type_ids = dataset[i]['token_type_ids'].tolist()
-        label_ids = dataset[i]['labels'].tolist()
-        labels = ['-100' if l == -100 else id2label[l] for l in label_ids]
-        return input_ids, attention_mask, token_type_ids, label_ids, labels
+        input_ids = self.encodings['input_ids'][i]
+        attention_mask = self.encodings['attention_mask'][i]
+        token_type_ids = self.encodings.encodings[i].type_ids
+        label_ids = self.labels[i]
+        return input_ids, attention_mask, token_type_ids, label_ids
