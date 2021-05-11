@@ -1,8 +1,11 @@
-from typing import List, Optional, Union, TextIO
 from bisect import bisect_left, bisect_right
+import logging
+from typing import List, Optional, Union, TextIO
 
+from tqdm import tqdm
 from transformer_deid.label import Label
 
+logger = logging.getLogger(__name__)
 
 def encode_tags(tags, encodings, tag2id):
     encoded_labels = [
