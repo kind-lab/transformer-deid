@@ -25,6 +25,10 @@ class Label(object):
         else:
             self.entity_type = mapping[self.entity_type]
 
+    def shift(self, s):
+        self.start += s
+        return self
+
     def contains(self, i):
         """Returns true if any label contains the offset."""
         return (self.start >= i) & ((self.start + self.length) < i)
@@ -35,6 +39,12 @@ class Label(object):
         contains_stop = ((self.start + self.length) >=
                          start) & ((self.start + self.length) < stop)
         return contains_start | contains_stop
+    
+    def within(self, start, stop):
+        """Returns true if the label is within a start/stop offset."""
+        after_start = (self.start >= start) or ((self.start + self.length) >= start)
+        before_stop = self.start < stop
+        return after_start & before_stop
 
 
 def convert_to_bio_scheme(tokens: list) -> list:
