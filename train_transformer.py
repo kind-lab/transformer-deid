@@ -149,7 +149,7 @@ def main():
         'label_transform': label_transform,
         'split_long_sequences': split_long_sequences,
     }
-    with open(os.path.join(training_args.output_dir, f'{result_time}_{task_name}_DistilBert')) as fp:
+    with open(os.path.join(training_args.output_dir, f'{result_time}_{task_name}_DistilBert.json'), 'w') as fp:
         json.dump(results, fp)
     
     print(results)
