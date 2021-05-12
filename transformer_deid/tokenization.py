@@ -94,7 +94,7 @@ def assign_tags_to_single_text(
 
     return token_labels
 
-def split_long_sequences(texts, labels, tokenizer):
+def split_sequences(texts, labels, tokenizer):
     # tokenize the text
     encodings = tokenizer(texts, add_special_tokens=False)
     seq_len = tokenizer.max_len_single_sentence
