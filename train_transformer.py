@@ -1,9 +1,10 @@
+from datetime import datetime
 import logging
 from pathlib import Path
-import re
+import os
+import json
 
 import numpy as np
-from sklearn.model_selection import train_test_split
 
 from transformers import DistilBertTokenizerFast
 from transformers import DistilBertForTokenClassification
@@ -13,7 +14,7 @@ from datasets import load_metric
 # local packages
 from transformer_deid.data import DeidDataset, DeidTask
 from transformer_deid.evaluation import compute_metrics
-from transformer_deid.tokenization import assign_tags, encode_tags
+from transformer_deid.tokenization import assign_tags, encode_tags, split_sequences
 
 
 logging.basicConfig(
@@ -24,11 +25,15 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 def main():
+    # specify dataset arguments
     task_name = 'i2b2_2014'
+    split_long_sequences = True
+    label_transform = 'base'
+
     deid_task = DeidTask(
         task_name,
         data_dir=f'/home/alistairewj/git/deid-gs/{task_name}',
-        label_transform='base'
+        label_transform=label_transform
     )
 
     train_texts, train_labels = deid_task.train['text'], deid_task.train['ann']
@@ -40,11 +45,9 @@ def main():
     # (1) tokenize text
     # (2) identify split points
     # (3) output text as it was originally
-    # train_texts, train_labels, train_sequence_offsets = split_long_sequences(train_texts, train_labels, tokenizer)
-    # test_texts, test_labels, test_sequence_offsets = split_long_sequences(test_texts, test_labels, tokenizer)
-    
-    # if we don't want to split long sequences, just pass None/None
-    train_sequence_offsets, test_sequence_offsets = None, None
+    if split_long_sequences:
+        train_texts, train_labels = split_sequences(train_texts, train_labels, tokenizer)
+        test_texts, test_labels = split_sequences(test_texts, test_labels, tokenizer)
 
     train_encodings = tokenizer(
         train_texts,
@@ -62,8 +65,8 @@ def main():
     )
 
     # use the offset mappings in train_encodings to assign labels to tokens
-    train_tags = assign_tags(train_encodings, train_labels, label_offset=train_sequence_offsets)
-    test_tags = assign_tags(test_encodings, test_labels, label_offset=test_sequence_offsets)
+    train_tags = assign_tags(train_encodings, train_labels)
+    test_tags = assign_tags(test_encodings, test_labels)
 
     # encodings are dicts with three elements:
     #   'input_ids', 'attention_mask', 'offset_mapping'
