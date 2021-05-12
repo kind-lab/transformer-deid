@@ -121,6 +121,8 @@ class TokenEvaluation(datasets.Metric):
 
         all_pos, all_tp, all_fp = [], [], []
         for label in labels:
+            if label == 'O':
+                continue
             label_pos, label_tp, label_fp = [], [], []
             for pred, target in zip(predictions, references):
                 # convert to numpy for array calculations
