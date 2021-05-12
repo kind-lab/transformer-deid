@@ -138,6 +138,20 @@ def main():
     metric = load_metric(metric_dir)
     results = compute_metrics(predictions, labels, deid_task.labels, metric=metric)
 
+    # output results to a log file
+    if not os.path.exists(training_args.output_dir):
+        os.mkdirs(training_args.output_dir)
+    
+    # add a few arguments to the results json
+    result_time = datetime.now().strftime('%Y-%m-%dT%H%M%S')
+    results['params'] = {
+        'task_name': task_name,
+        'label_transform': label_transform,
+        'split_long_sequences': split_long_sequences,
+    }
+    with open(os.path.join(training_args.output_dir, f'{result_time}_{task_name}_DistilBert')) as fp:
+        json.dump(results, fp)
+    
     print(results)
 
 
