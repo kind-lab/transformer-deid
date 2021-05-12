@@ -15,6 +15,7 @@ from datasets import load_metric
 from transformer_deid.data import DeidDataset, DeidTask
 from transformer_deid.evaluation import compute_metrics
 from transformer_deid.tokenization import assign_tags, encode_tags, split_sequences
+from transformer_deid.utils import convert_dict_to_native_types
 
 logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
@@ -147,6 +148,12 @@ def main():
         predictions, labels, deid_task.labels, metric=metric
     )
 
+    print(results)
+
+    # convert values within results dict from numpy types to python types
+    # makes it easier to serialize to json
+    results = convert_dict_to_native_types(results)
+
     # output results to a log file
     if not os.path.exists(training_args.output_dir):
         os.mkdirs(training_args.output_dir)
@@ -165,8 +172,6 @@ def main():
         ), 'w'
     ) as fp:
         json.dump(results, fp)
-
-    print(results)
 
 
 if __name__ == '__main__':
