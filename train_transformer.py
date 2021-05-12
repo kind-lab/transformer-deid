@@ -16,13 +16,13 @@ from transformer_deid.data import DeidDataset, DeidTask
 from transformer_deid.evaluation import compute_metrics
 from transformer_deid.tokenization import assign_tags, encode_tags, split_sequences
 
-
 logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
     datefmt='%m/%d/%Y %H:%M:%S',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
+
 
 def main():
     # specify dataset arguments
@@ -46,8 +46,12 @@ def main():
     # (2) identify split points
     # (3) output text as it was originally
     if split_long_sequences:
-        train_texts, train_labels = split_sequences(train_texts, train_labels, tokenizer)
-        test_texts, test_labels = split_sequences(test_texts, test_labels, tokenizer)
+        train_texts, train_labels = split_sequences(
+            train_texts, train_labels, tokenizer
+        )
+        test_texts, test_labels = split_sequences(
+            test_texts, test_labels, tokenizer
+        )
 
     train_encodings = tokenizer(
         train_texts,
@@ -102,11 +106,10 @@ def main():
         eval_dataset=test_dataset
     )
 
-
     logger.info("***** Running training *****")
     logger.info("  Num examples = %d", len(train_dataset))
     logger.info("  Num Epochs = %d", training_args.num_train_epochs)
-    
+
     # log top 5 examples
     for i in range(min(len(train_dataset), 5)):
         input_ids, attention_mask, token_type_ids, label_ids = train_dataset.get_example(
@@ -115,7 +118,9 @@ def main():
 
         # convert ids into human interpretable values
         tokens = tokenizer.convert_ids_to_tokens(input_ids)
-        labels = ['-100' if l == -100 else deid_task.id2label[l] for l in label_ids]
+        labels = [
+            '-100' if l == -100 else deid_task.id2label[l] for l in label_ids
+        ]
 
         logger.info("*** Example %d ***", i)
         logger.info("tokens: %s", " ".join(tokens))
@@ -134,14 +139,18 @@ def main():
     predicted_label = np.argmax(predictions, axis=2)
 
     curr_dir = Path(__file__).parent
-    metric_dir = str((curr_dir / "transformer_deid/token_evaluation.py").absolute())
+    metric_dir = str(
+        (curr_dir / "transformer_deid/token_evaluation.py").absolute()
+    )
     metric = load_metric(metric_dir)
-    results = compute_metrics(predictions, labels, deid_task.labels, metric=metric)
+    results = compute_metrics(
+        predictions, labels, deid_task.labels, metric=metric
+    )
 
     # output results to a log file
     if not os.path.exists(training_args.output_dir):
         os.mkdirs(training_args.output_dir)
-    
+
     # add a few arguments to the results json
     result_time = datetime.now().strftime('%Y-%m-%dT%H%M%S')
     results['params'] = {
@@ -149,9 +158,14 @@ def main():
         'label_transform': label_transform,
         'split_long_sequences': split_long_sequences,
     }
-    with open(os.path.join(training_args.output_dir, f'{result_time}_{task_name}_DistilBert.json'), 'w') as fp:
+    with open(
+        os.path.join(
+            training_args.output_dir,
+            f'{result_time}_{task_name}_DistilBert.json'
+        ), 'w'
+    ) as fp:
         json.dump(results, fp)
-    
+
     print(results)
 
 
