@@ -6,8 +6,7 @@ import json
 
 import numpy as np
 
-from transformers import DistilBertTokenizerFast
-from transformers import DistilBertForTokenClassification
+from transformers import AutoConfig, AutoTokenizer, AutoModelForTokenClassification
 from transformers import Trainer, TrainingArguments
 from datasets import load_metric
 
@@ -30,6 +29,7 @@ def main():
     task_name = 'i2b2_2014'
     split_long_sequences = True
     label_transform = 'base'
+    model_name = 'distilbert-base-cased'
 
     curr_dir = Path(__file__).parent
     deid_task = DeidTask(
@@ -41,7 +41,7 @@ def main():
     train_texts, train_labels = deid_task.train['text'], deid_task.train['ann']
     test_texts, test_labels = deid_task.test['text'], deid_task.test['ann']
 
-    tokenizer = DistilBertTokenizerFast.from_pretrained('distilbert-base-cased')
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
 
     # split text/labels into multiple examples
     # (1) tokenize text
@@ -86,8 +86,8 @@ def main():
     train_dataset = DeidDataset(train_encodings, train_labels)
     test_dataset = DeidDataset(test_encodings, test_labels)
 
-    model = DistilBertForTokenClassification.from_pretrained(
-        'distilbert-base-cased', num_labels=len(deid_task.labels)
+    model = AutoModelForTokenClassification.from_pretrained(
+        model_name, num_labels=len(deid_task.labels)
     )
 
     training_args = TrainingArguments(
@@ -133,7 +133,7 @@ def main():
 
     trainer.train()
 
-    trainer.save_model(f'results/{task_name}_DistilBert_Model')
+    trainer.save_model(f'results/{task_name}_{model_name}')
 
     trainer.evaluate()
 
@@ -168,7 +168,7 @@ def main():
     with open(
         os.path.join(
             training_args.output_dir,
-            f'{result_time}_{task_name}_DistilBert.json'
+            f'{result_time}_{task_name}_{model_name}.json'
         ), 'w'
     ) as fp:
         json.dump(results, fp)
