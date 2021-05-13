@@ -2,7 +2,9 @@ from datetime import datetime
 import logging
 from pathlib import Path
 import os
+import sys
 import json
+import argparse
 
 import numpy as np
 
@@ -25,11 +27,17 @@ logger = logging.getLogger(__name__)
 
 
 def main():
+    parser = argparse.ArgumentParser(
+        description="Train a transformer to deidentify data."
+    )
+    parser.add_argument('--model-name', default='distilbert-base-uncased')
+
     # specify dataset arguments
+    args = parser.parse_args(sys.argv[1:])
+    model_name = args.model_name
     task_name = 'i2b2_2014'
     split_long_sequences = True
     label_transform = 'base'
-    model_name = 'distilbert-base-cased'
 
     curr_dir = Path(__file__).parent
     deid_task = DeidTask(
