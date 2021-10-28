@@ -33,7 +33,8 @@ def main():
 
     deid_task = DeidTask(
         task_name,
-        data_dir=f'/home/alistairewj/git/deid-gs/{task_name}',
+        #data_dir=f'/home/alistairewj/git/deid-gs/{task_name}',
+        data_dir=f'../{task_name}',
         label_transform=label_transform
     )
 
