@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 def test_example(text, model):
-    """ Test a single instance of text input. Return prediction matrix. """
+    """ Test a single instance of text input. Return replaced text. """
     # Input a single instance of text
     # test_texts and test_labels already processed by split_sequences() earlier
     
@@ -31,14 +31,15 @@ def test_example(text, model):
     result = model(input_ids=torch.tensor(encodings['input_ids']).to(device),
                 attention_mask=torch.tensor(encodings['attention_mask']).to(device))
     logits = result['logits'].cpu().detach().numpy()
-    predictions = np.argmax(logits, axis=2)
-    return predictions
+    predictions = np.argmax(logits, axis=2)[0]
+    result = interpret_prediction(encodings.tokens, predictions, repl='___')
+    return result
 
 
-def interpret_prediction(tokens, prediction, repl='___'):
+def interpret_prediction(tokens, predictions, repl='___'):   # TODO: combine tokens into words
     """ Replace predicted tokens with repl. """
     tokens = list(tokens)
-    for index, label in enumerate(prediction):
+    for index, label in enumerate(predictions):
         if label == 6:
             tokens[index] = repl
     return ' '.join(tokens)
