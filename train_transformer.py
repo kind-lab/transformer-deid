@@ -146,7 +146,7 @@ def main():
     )
     metric = load_metric(metric_dir)
     results = compute_metrics(
-        predictions, labels, deid_task.labels, metric=metric
+        predicted_label, labels, deid_task.labels, metric=metric
     )
 
     print(results)
