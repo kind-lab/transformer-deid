@@ -94,7 +94,14 @@ def assign_tags_to_single_text(
 
     return token_labels
 
-def split_sequences(texts, labels, tokenizer):
+def split_sequences(tokenizer, texts, labels=None):
+    """
+    Split long texts into subtexts of max length.
+    If labels is provided, labels will be split in correspondence with texts.
+    Return new list of split texts and new list of labels (if applicable).
+    """
+    split_labels = labels is None
+
     # tokenize the text
     encodings = tokenizer(texts, add_special_tokens=False)
     seq_len = tokenizer.max_len_single_sentence
@@ -135,7 +142,8 @@ def split_sequences(texts, labels, tokenizer):
 
     
     new_text = []
-    new_labels = []
+    if split_labels:
+        new_labels = []
 
     logger.info('Splitting text.')
     for i, subseq in tqdm(enumerate(sequence_offsets), total=len(encodings.encodings)):
@@ -158,9 +166,13 @@ def split_sequences(texts, labels, tokenizer):
             subsetted_labels = [
                 label.shift(-text_start) for label in labels[i] if label.within(text_start, text_stop)
             ]
-            new_labels.append(subsetted_labels)
+            if labels:
+                new_labels.append(subsetted_labels)
 
-    return new_text, new_labels
+    if split_labels:
+        return new_text, new_labels
+    else:
+        return new_text
 
 def expand_id_to_token(token_pred, ignore_value=None):
     # get most frequent label_id for this token

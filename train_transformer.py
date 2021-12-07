@@ -49,10 +49,10 @@ def main():
     # (3) output text as it was originally
     if split_long_sequences:
         train_texts, train_labels = split_sequences(
-            train_texts, train_labels, tokenizer
+            tokenizer, train_texts, train_labels
         )
         test_texts, test_labels = split_sequences(
-            test_texts, test_labels, tokenizer
+            tokenizer, test_texts, test_labels
         )
 
     train_encodings = tokenizer(
