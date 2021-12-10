@@ -112,7 +112,7 @@ class TokenEvaluation(datasets.Metric):
 
         # extract all possible entities
         predicted_entities = set([entity for entities in predictions for entity in entities])
-        reference_entities = set([entity for entities in predictions for entity in entities])
+        reference_entities = set([entity for entities in references for entity in entities])
 
         labels = sorted(predicted_entities.union(reference_entities))
 
