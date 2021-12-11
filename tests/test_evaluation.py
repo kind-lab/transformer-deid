@@ -19,10 +19,10 @@ def test_class_metrics():
     Generate 10 test pairs randomly, compare calculated metrics to sklearn.metrics
     """
     # TODO: Note that -100 values are not included in test cases
-    predictions = np.random.randint(0, high=len(text_labels) - 1, size=(10, 250))
-    references = np.random.randint(0, high=len(text_labels) - 2, size=(10, 250))
-    predictions1d = list(predictions.flatten())
-    references1d = list(references.flatten())
+    predictions = np.random.randint(0, high=len(text_labels) - 1, size=(10, 250))  # TODO: Not sure how to handle 'O'
+    references = np.random.randint(0, high=len(text_labels) - 1, size=(10, 250))
+    predictions1d = predictions.flatten()
+    references1d = references.flatten()
 
     predicted_entities = set([entity for entities in predictions for entity in entities])
     reference_entities = set([entity for entities in references for entity in entities])
@@ -39,7 +39,6 @@ def test_class_metrics():
         assert math.isclose(comp_metrics[text_label]['precision'], target_metrics[text_label]['precision'], rel_tol=1e-6)
         assert math.isclose(comp_metrics[text_label]['recall'], target_metrics[text_label]['recall'], rel_tol=1e-6)
     # TODO: validate overall accuracy, precision, recall, f1
-    
 
 def test_binary_metrics():
     """
