@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 def deid_example(text, model):
     """ Run deid on a single instance of text input. Return replaced text. """
     tokenizer = DistilBertTokenizerFast.from_pretrained('distilbert-base-cased')
-    texts = split_sequences([text], tokenizer)
+    texts = split_sequences(tokenizer, [text])
     encodings = tokenizer(
         texts,
         is_split_into_words=False,
