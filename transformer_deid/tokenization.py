@@ -100,8 +100,6 @@ def split_sequences(tokenizer, texts, labels=None):
     If labels is provided, labels will be split in correspondence with texts.
     Return new list of split texts and new list of labels (if applicable).
     """
-    split_labels = labels is None
-
     # tokenize the text
     encodings = tokenizer(texts, add_special_tokens=False)
     seq_len = tokenizer.max_len_single_sentence
@@ -142,7 +140,7 @@ def split_sequences(tokenizer, texts, labels=None):
 
     
     new_text = []
-    if split_labels:
+    if labels:
         new_labels = []
 
     logger.info('Splitting text.')
@@ -162,14 +160,14 @@ def split_sequences(tokenizer, texts, labels=None):
             # extract the text from the offsets
             new_text.append(texts[i][text_start:text_stop])
 
-            # subselect labels across examples, shifting them by the text offset
-            subsetted_labels = [
-                label.shift(-text_start) for label in labels[i] if label.within(text_start, text_stop)
-            ]
             if labels:
+                # subselect labels across examples, shifting them by the text offset
+                subsetted_labels = [
+                    label.shift(-text_start) for label in labels[i] if label.within(text_start, text_stop)
+                ]
                 new_labels.append(subsetted_labels)
 
-    if split_labels:
+    if labels:
         return new_text, new_labels
     else:
         return new_text
