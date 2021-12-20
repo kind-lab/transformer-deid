@@ -37,7 +37,7 @@ def get_logits(encodings, model):
     result = model(input_ids=torch.tensor(encodings['input_ids']).to(device),
                 attention_mask=torch.tensor(encodings['attention_mask']).to(device))
     logits = result['logits'].cpu().detach().numpy()
-    return logits[0]
+    return logits
 
 
 def replace_names(tokens, labels, repl='___'):   # TODO: combine tokens into words
