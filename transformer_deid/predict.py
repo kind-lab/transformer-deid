@@ -27,7 +27,7 @@ def deid_example(text, model):
     encodings.pop("offset_mapping")
     logits = get_logits(encodings, model)
     pred_labels = np.argmax(logits, axis=2)[0]
-    result = replace_names(encodings.tokens, pred_labels, repl='___')
+    result = replace_names(encodings.tokens, pred_labels, label_id=6, repl='___')
     return result
 
 
@@ -40,10 +40,10 @@ def get_logits(encodings, model):
     return logits
 
 
-def replace_names(tokens, labels, repl='___'):   # TODO: combine tokens into words
+def replace_names(tokens, labels, label_id, repl='___'):   # TODO: combine tokens into words
     """ Replace predicted name tokens with repl. """
     tokens = list(tokens)
     for index, label in enumerate(labels):
-        if label == 6:
+        if label == label_id:
             tokens[index] = repl
     return ' '.join(tokens)
