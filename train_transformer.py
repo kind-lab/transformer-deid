@@ -31,10 +31,10 @@ def main():
     split_long_sequences = True
     label_transform = 'base'
 
+    curr_dir = Path(__file__).parent
     deid_task = DeidTask(
         task_name,
-        #data_dir=f'/home/alistairewj/git/deid-gs/{task_name}',
-        data_dir=f'../{task_name}',
+        data_dir=f'{curr_dir}/../{task_name}',
         label_transform=label_transform
     )
 
@@ -140,7 +140,6 @@ def main():
     predictions, labels, _ = trainer.predict(test_dataset)
     predicted_label = np.argmax(predictions, axis=2)
 
-    curr_dir = Path(__file__).parent
     metric_dir = str(
         (curr_dir / "transformer_deid/token_evaluation.py").absolute()
     )

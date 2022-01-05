@@ -1,14 +1,11 @@
 import numpy as np
-import sys
 import math
-import pprint
+from pathlib import Path
 from sklearn import metrics
 from datasets import load_metric
-
-sys.path.append("..")
 from transformer_deid import evaluation
 
-metric_dir = "../transformer_deid/token_evaluation.py"
+metric_dir = f"{Path(__file__).parent}/../transformer_deid/token_evaluation.py"
 metric = load_metric(metric_dir)
 
 text_labels = ['O', 'AGE', 'CONTACT', 'DATE', 'ID', 'LOCATION', 'NAME', 'PROFESSION']
