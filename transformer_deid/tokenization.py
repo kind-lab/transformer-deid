@@ -86,9 +86,9 @@ def assign_tags_to_single_text(
     # these are assigned a pad token so the loss is not calculated over them
     # special tokens have words == None, subword tokens have the same word as the previous token
     token_labels = [
-        pad_token_label if (encoding.words[i] is None) or
+        pad_token_label if (encoding.word_ids[i] is None) or
         ((i >= 0) and
-         (encoding.words[i] == encoding.words[i - 1])) else token_label
+         (encoding.word_ids[i] == encoding.word_ids[i - 1])) else token_label
         for i, token_label in enumerate(token_labels)
     ]
 
@@ -358,8 +358,8 @@ def get_token_labels(
     # construct sub-words flags
     # TODO: does this vary according to model?
     token_sw = [False] + [
-        encoded.words[i + 1] == encoded.words[i]
-        for i in range(len(encoded.words) - 1)
+        encoded.word_ids[i + 1] == encoded.word_ids[i]
+        for i in range(len(encoded.word_ids) - 1)
     ]
 
     # initialize token labels as the default label
@@ -433,8 +433,8 @@ def tokenize_with_labels(
     # construct sub-words flags
     # TODO: does this vary according to model?
     token_sw = [False] + [
-        encoded.words[i + 1] == encoded.words[i]
-        for i in range(len(encoded.words) - 1)
+        encoded.word_ids[i + 1] == encoded.word_ids[i]
+        for i in range(len(encoded.word_ids) - 1)
     ]
 
     token_labels = self.get_token_labels(
@@ -474,8 +474,8 @@ def convert_examples_to_features(
             example.text, add_special_tokens=False
         )
         token_sw = [False] + [
-            encoded.words[i + 1] == encoded.words[i]
-            for i in range(len(encoded.words) - 1)
+            encoded.word_ids[i + 1] == encoded.word_ids[i]
+            for i in range(len(encoded.word_ids) - 1)
         ]
         token_offsets = np.array(encoded.offsets)
 
