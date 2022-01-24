@@ -13,6 +13,15 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def get_logits(encodings, model):
+    """ Return predicted labels from the encodings of a *single* text example. """
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    result = model(input_ids=torch.tensor(encodings['input_ids']).to(device),
+                attention_mask=torch.tensor(encodings['attention_mask']).to(device))
+    logits = result['logits'].cpu().detach().numpy()
+    return logits
+
+
 def deid_example(text, model):
     """ Run deid on a single instance of text input. Return replaced text. """
     tokenizer = DistilBertTokenizerFast.from_pretrained('distilbert-base-cased')
@@ -29,15 +38,6 @@ def deid_example(text, model):
     pred_labels = np.argmax(logits, axis=2)[0]
     result = replace_names(encodings.tokens, pred_labels, label_id=6, repl='___')
     return result
-
-
-def get_logits(encodings, model):
-    """ Return predicted labels from the encodings of a *single* text example. """
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    result = model(input_ids=torch.tensor(encodings['input_ids']).to(device),
-                attention_mask=torch.tensor(encodings['attention_mask']).to(device))
-    logits = result['logits'].cpu().detach().numpy()
-    return logits
 
 
 def replace_names(tokens, labels, label_id, repl='___'):   # TODO: combine tokens into words
