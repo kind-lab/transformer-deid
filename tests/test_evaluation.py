@@ -13,18 +13,18 @@ TEXT_LABELS = ['O', 'AGE', 'CONTACT', 'DATE', 'ID', 'LOCATION', 'NAME', 'PROFESS
 
 def test_individual_multiclass_class_metrics_general():  # TODO: Replace random test cases
     """
-    Dompare calculated metrics to sklearn.metrics without 0 and -100 cases.
+    Compare calculated metrics to sklearn.metrics without 0 and -100 cases.
     """
-    predictions = [
+    predictions = np.array([
         [1, 2, 3, 4, 5, 6, 7, 1, 2, 3],
         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
         [1, 2, 3, 4, 5, 6, 7, 1, 2, 3]
-    ]
-    references = [
+    ])
+    references = np.array([
         [1, 2, 3, 4, 5, 6, 7, 1, 2, 3],  # full match
         [1, 1, 1, 1, 1, 1, 1, 1, 4, 1],  # one difference
         [2, 3, 4, 5, 6, 7, 1, 1, 2, 3]   # some differences
-    ]
+    ])
 
     predictions1d = predictions.flatten()
     references1d = references.flatten()
@@ -46,15 +46,18 @@ def test_individual_multiclass_class_metrics_general():  # TODO: Replace random 
 
 
 def test_individual_multiclass_class_metrics_special_token():
-    predictions = [
+    """
+    Compare calculated metrics to sklearn.metrics with -100 cases.
+    """
+    predictions = np.array([
         [1, 2, 3, 4, 5, 6, 7, 1, 2, 3]
-    ]
-    references = [
+    ])
+    references = np.array([
         [2, 2, 2, 4, 5, 6, 7, -100, 1, -100]
-    ]
+    ])
     
-    processed_predictions = [1, 2, 3, 4, 5, 6, 7, 2]
-    processed_references = [1, 2, 3, 4, 5, 6, 7, 1]
+    processed_predictions = np.array([1, 2, 3, 4, 5, 6, 7, 2])
+    processed_references = np.array([2, 2, 2, 4, 5, 6, 7, 1])
 
     predicted_entities = set([entity for entities in predictions for entity in entities])
     reference_entities = set([entity for entities in references for entity in entities])
@@ -73,46 +76,44 @@ def test_individual_multiclass_class_metrics_special_token():
 
 
 def test_individual_multiclass_class_metrics_non_entity():
-    predictions = [
-        [1, 2, 3, 4, 5, 6, 7, 0, 2, 3]
-    ]
-    references = [
-        [2, 2, 2, 4, 5, 0, 7, 1, 2, 0]
-    ]
+    """
+    Compare calculated metrics to expected results with 'O' labels.
+    """
     
-    processed_predictions = [1, 2, 3, 4, 5, 7, 2]
-    processed_references = [2, 2, 2, 4, 5, 7, 2]
-
-    predicted_entities = set([entity for entities in predictions for entity in entities])
-    reference_entities = set([entity for entities in references for entity in entities])
-    labels = sorted(predicted_entities.union(reference_entities))
+    predictions = np.array([
+        [1, 2, 1, 1, 1, 1, 2, 0, 2, 1]
+    ])
+    references = np.array([
+        [2, 2, 2, 2, 1, 0, 2, 1, 2, 0]
+    ])
 
     comp_metrics = evaluation.compute_metrics(predictions=predictions, labels=references, label_list=TEXT_LABELS, metric=metric, binary_evaluation=False)
-    target_metrics = metrics.classification_report(y_pred=processed_predictions, y_true=processed_references, output_dict=True, labels=list(range(8)), target_names=TEXT_LABELS)
 
-    for idx_label, text_label in enumerate(TEXT_LABELS):
-        if text_label == 'O' or idx_label not in labels:
-            continue
-        assert math.isclose(comp_metrics[text_label]['f1'], target_metrics[text_label]['f1-score'], rel_tol=1e-6)
-        assert math.isclose(comp_metrics[text_label]['number'], target_metrics[text_label]['support'], rel_tol=1e-6)
-        assert math.isclose(comp_metrics[text_label]['precision'], target_metrics[text_label]['precision'], rel_tol=1e-6)
-        assert math.isclose(comp_metrics[text_label]['recall'], target_metrics[text_label]['recall'], rel_tol=1e-6)
+    assert comp_metrics['AGE']['f1'] == 0.25
+    assert comp_metrics['AGE']['number'] == 2
+    assert math.isclose(comp_metrics['AGE']['precision'], 0.16666666666666666)
+    assert comp_metrics['AGE']['recall'] == 0.5
+    
+    assert math.isclose(comp_metrics['CONTACT']['f1'], 0.6666666666666666)
+    assert comp_metrics['CONTACT']['number'] == 6
+    assert comp_metrics['CONTACT']['precision'] == 1
+    assert comp_metrics['CONTACT']['recall'] == 0.5
 
 
 def test_individual_binary_metrics():
     """
     Generate 10 test pairs randomly, compare calculated binary metrics to sklearn.metrics
     """
-    predictions = [
+    predictions = np.array([
         [1, 2, 3, 4, 5, 6, 7, 1, 2, 3],
         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
         [1, 2, 3, 4, 5, 6, 7, 1, 2, 3]
-    ]
-    references = [
+    ])
+    references = np.array([
         [1, 2, 3, 4, 5, 6, 7, 1, 2, 3],  # full match
         [1, 1, 1, 1, 1, 1, 1, 1, 4, 1],  # one difference
         [2, 3, 4, 5, 6, 7, 1, 1, 2, 3]   # some differences
-    ]
+    ])
 
     binary_predictions = predictions.flatten() == 0
     binary_references = references.flatten() == 0
