@@ -8,16 +8,24 @@ from transformer_deid import evaluation
 metric_dir = f"{Path(__file__).parent}/../transformer_deid/token_evaluation.py"
 metric = load_metric(metric_dir)
 
-text_labels = ['O', 'AGE', 'CONTACT', 'DATE', 'ID', 'LOCATION', 'NAME', 'PROFESSION']
+TEXT_LABELS = ['O', 'AGE', 'CONTACT', 'DATE', 'ID', 'LOCATION', 'NAME', 'PROFESSION']
 
 
-def test_individual_class_metrics():
+def test_individual_multiclass_class_metrics_general():  # TODO: Replace random test cases
     """
-    Generate 10 test pairs randomly, compare calculated metrics to sklearn.metrics
+    Dompare calculated metrics to sklearn.metrics without 0 and -100 cases.
     """
-    # TODO: Note that -100 values are not included in test cases
-    predictions = np.random.randint(0, high=len(text_labels) - 1, size=(10, 250))  # TODO: Not sure how to handle 'O'
-    references = np.random.randint(0, high=len(text_labels) - 1, size=(10, 250))
+    predictions = [
+        [1, 2, 3, 4, 5, 6, 7, 1, 2, 3],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 2, 3, 4, 5, 6, 7, 1, 2, 3]
+    ]
+    references = [
+        [1, 2, 3, 4, 5, 6, 7, 1, 2, 3],  # full match
+        [1, 1, 1, 1, 1, 1, 1, 1, 4, 1],  # one difference
+        [2, 3, 4, 5, 6, 7, 1, 1, 2, 3]   # some differences
+    ]
+
     predictions1d = predictions.flatten()
     references1d = references.flatten()
 
@@ -25,10 +33,64 @@ def test_individual_class_metrics():
     reference_entities = set([entity for entities in references for entity in entities])
     labels = sorted(predicted_entities.union(reference_entities))
 
-    comp_metrics = evaluation.compute_metrics(predictions=predictions, labels=references, label_list=text_labels, metric=metric, binary_evaluation=False)
-    target_metrics = metrics.classification_report(y_pred=predictions1d, y_true=references1d, output_dict=True, labels=list(range(8)), target_names=text_labels)
+    comp_metrics = evaluation.compute_metrics(predictions=predictions, labels=references, label_list=TEXT_LABELS, metric=metric, binary_evaluation=False)
+    target_metrics = metrics.classification_report(y_pred=predictions1d, y_true=references1d, output_dict=True, labels=list(range(8)), target_names=TEXT_LABELS)
 
-    for idx_label, text_label in enumerate(text_labels):
+    for idx_label, text_label in enumerate(TEXT_LABELS):
+        if text_label == 'O' or idx_label not in labels:
+            continue
+        assert math.isclose(comp_metrics[text_label]['f1'], target_metrics[text_label]['f1-score'], rel_tol=1e-6)
+        assert math.isclose(comp_metrics[text_label]['number'], target_metrics[text_label]['support'], rel_tol=1e-6)
+        assert math.isclose(comp_metrics[text_label]['precision'], target_metrics[text_label]['precision'], rel_tol=1e-6)
+        assert math.isclose(comp_metrics[text_label]['recall'], target_metrics[text_label]['recall'], rel_tol=1e-6)
+
+
+def test_individual_multiclass_class_metrics_special_token():
+    predictions = [
+        [1, 2, 3, 4, 5, 6, 7, 1, 2, 3]
+    ]
+    references = [
+        [2, 2, 2, 4, 5, 6, 7, -100, 1, -100]
+    ]
+    
+    processed_predictions = [1, 2, 3, 4, 5, 6, 7, 2]
+    processed_references = [1, 2, 3, 4, 5, 6, 7, 1]
+
+    predicted_entities = set([entity for entities in predictions for entity in entities])
+    reference_entities = set([entity for entities in references for entity in entities])
+    labels = sorted(predicted_entities.union(reference_entities))
+
+    comp_metrics = evaluation.compute_metrics(predictions=predictions, labels=references, label_list=TEXT_LABELS, metric=metric, binary_evaluation=False)
+    target_metrics = metrics.classification_report(y_pred=processed_predictions, y_true=processed_references, output_dict=True, labels=list(range(8)), target_names=TEXT_LABELS)
+
+    for idx_label, text_label in enumerate(TEXT_LABELS):
+        if text_label == 'O' or idx_label not in labels:
+            continue
+        assert math.isclose(comp_metrics[text_label]['f1'], target_metrics[text_label]['f1-score'], rel_tol=1e-6)
+        assert math.isclose(comp_metrics[text_label]['number'], target_metrics[text_label]['support'], rel_tol=1e-6)
+        assert math.isclose(comp_metrics[text_label]['precision'], target_metrics[text_label]['precision'], rel_tol=1e-6)
+        assert math.isclose(comp_metrics[text_label]['recall'], target_metrics[text_label]['recall'], rel_tol=1e-6)
+
+
+def test_individual_multiclass_class_metrics_non_entity():
+    predictions = [
+        [1, 2, 3, 4, 5, 6, 7, 0, 2, 3]
+    ]
+    references = [
+        [2, 2, 2, 4, 5, 0, 7, 1, 2, 0]
+    ]
+    
+    processed_predictions = [1, 2, 3, 4, 5, 7, 2]
+    processed_references = [2, 2, 2, 4, 5, 7, 2]
+
+    predicted_entities = set([entity for entities in predictions for entity in entities])
+    reference_entities = set([entity for entities in references for entity in entities])
+    labels = sorted(predicted_entities.union(reference_entities))
+
+    comp_metrics = evaluation.compute_metrics(predictions=predictions, labels=references, label_list=TEXT_LABELS, metric=metric, binary_evaluation=False)
+    target_metrics = metrics.classification_report(y_pred=processed_predictions, y_true=processed_references, output_dict=True, labels=list(range(8)), target_names=TEXT_LABELS)
+
+    for idx_label, text_label in enumerate(TEXT_LABELS):
         if text_label == 'O' or idx_label not in labels:
             continue
         assert math.isclose(comp_metrics[text_label]['f1'], target_metrics[text_label]['f1-score'], rel_tol=1e-6)
@@ -41,13 +103,21 @@ def test_individual_binary_metrics():
     """
     Generate 10 test pairs randomly, compare calculated binary metrics to sklearn.metrics
     """
-    predictions = np.random.randint(0, high=len(text_labels) - 1, size=(10, 250))
-    references = np.random.randint(1, high=len(text_labels) - 1, size=(10, 250))
+    predictions = [
+        [1, 2, 3, 4, 5, 6, 7, 1, 2, 3],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 2, 3, 4, 5, 6, 7, 1, 2, 3]
+    ]
+    references = [
+        [1, 2, 3, 4, 5, 6, 7, 1, 2, 3],  # full match
+        [1, 1, 1, 1, 1, 1, 1, 1, 4, 1],  # one difference
+        [2, 3, 4, 5, 6, 7, 1, 1, 2, 3]   # some differences
+    ]
 
     binary_predictions = predictions.flatten() == 0
     binary_references = references.flatten() == 0
 
-    comp_metrics = evaluation.compute_metrics(predictions=predictions, labels=references, label_list=text_labels, metric=metric, binary_evaluation=True)
+    comp_metrics = evaluation.compute_metrics(predictions=predictions, labels=references, label_list=TEXT_LABELS, metric=metric, binary_evaluation=True)
     target_metrics = metrics.classification_report(y_pred=binary_predictions, y_true=binary_references, output_dict=True)
 
     assert math.isclose(comp_metrics['PHI']['f1'], target_metrics['False']['f1-score'], rel_tol=1e-6)
@@ -83,7 +153,7 @@ def test_overall_metrics_multiclass1():
             ]
     ) 
     
-    comp_metrics = evaluation.compute_metrics(predictions=predictions, labels=references, label_list=text_labels, metric=metric, binary_evaluation=False)
+    comp_metrics = evaluation.compute_metrics(predictions=predictions, labels=references, label_list=TEXT_LABELS, metric=metric, binary_evaluation=False)
     
     # label |  TP  |  FP  |  FN
     #   0   |  -   |  -   |  -
@@ -130,7 +200,7 @@ def test_overall_metrics_multiclass2():
             ]
     )
 
-    comp_metrics = evaluation.compute_metrics(predictions=predictions, labels=references, label_list=text_labels, metric=metric, binary_evaluation=False)
+    comp_metrics = evaluation.compute_metrics(predictions=predictions, labels=references, label_list=TEXT_LABELS, metric=metric, binary_evaluation=False)
     
     # label |  TP  |  FP  |  FN
     #   0   |  -   |  -   |  -
@@ -177,7 +247,7 @@ def test_overall_metrics_binary():
             ]
     )    
     
-    comp_metrics = evaluation.compute_metrics(predictions=predictions, labels=references, label_list=text_labels, metric=metric, binary_evaluation=True)
+    comp_metrics = evaluation.compute_metrics(predictions=predictions, labels=references, label_list=TEXT_LABELS, metric=metric, binary_evaluation=True)
 
     # label |  TP  |  FP  |  FN
     #   0   |  -   |  -   |  -
