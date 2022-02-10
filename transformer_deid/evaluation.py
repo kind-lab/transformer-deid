@@ -4,9 +4,6 @@ from datasets import load_metric
 
 def compute_metrics(predictions, labels, label_list, metric=load_metric("seqeval"), binary_evaluation=False) -> dict:
     """Returns a dictionary of operating point statistics (Precision/Recall/F1)."""
-
-    predictions = np.argmax(predictions, axis=2)
-
     # Remove ignored index (special tokens)
     true_predictions = [
         [label_list[p] for (p, l) in zip(prediction, label) if l != -100]

@@ -31,9 +31,10 @@ def main():
     split_long_sequences = True
     label_transform = 'base'
 
+    curr_dir = Path(__file__).parent
     deid_task = DeidTask(
         task_name,
-        data_dir=f'/home/alistairewj/git/deid-gs/{task_name}',
+        data_dir=f'{curr_dir}/../{task_name}',
         label_transform=label_transform
     )
 
@@ -48,10 +49,10 @@ def main():
     # (3) output text as it was originally
     if split_long_sequences:
         train_texts, train_labels = split_sequences(
-            train_texts, train_labels, tokenizer
+            tokenizer, train_texts, train_labels
         )
         test_texts, test_labels = split_sequences(
-            test_texts, test_labels, tokenizer
+            tokenizer, test_texts, test_labels
         )
 
     train_encodings = tokenizer(
@@ -139,13 +140,12 @@ def main():
     predictions, labels, _ = trainer.predict(test_dataset)
     predicted_label = np.argmax(predictions, axis=2)
 
-    curr_dir = Path(__file__).parent
     metric_dir = str(
         (curr_dir / "transformer_deid/token_evaluation.py").absolute()
     )
     metric = load_metric(metric_dir)
     results = compute_metrics(
-        predictions, labels, deid_task.labels, metric=metric
+        predicted_label, labels, deid_task.labels, metric=metric
     )
 
     print(results)
