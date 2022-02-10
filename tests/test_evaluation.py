@@ -37,7 +37,7 @@ def test_individual_multiclass_class_metrics_general():  # TODO: Replace random 
     target_metrics = metrics.classification_report(y_pred=predictions1d, y_true=references1d, output_dict=True, labels=list(range(8)), target_names=TEXT_LABELS)
 
     for idx_label, text_label in enumerate(TEXT_LABELS):
-        if text_label == 'O' or idx_label not in labels:
+        if (text_label == 'O') or (idx_label not in labels):
             continue
         assert math.isclose(comp_metrics[text_label]['f1'], target_metrics[text_label]['f1-score'], rel_tol=1e-6)
         assert math.isclose(comp_metrics[text_label]['number'], target_metrics[text_label]['support'], rel_tol=1e-6)
@@ -67,7 +67,7 @@ def test_individual_multiclass_class_metrics_special_token():
     target_metrics = metrics.classification_report(y_pred=processed_predictions, y_true=processed_references, output_dict=True, labels=list(range(8)), target_names=TEXT_LABELS)
 
     for idx_label, text_label in enumerate(TEXT_LABELS):
-        if text_label == 'O' or idx_label not in labels:
+        if (text_label == 'O') or (idx_label not in labels):
             continue
         assert math.isclose(comp_metrics[text_label]['f1'], target_metrics[text_label]['f1-score'], rel_tol=1e-6)
         assert math.isclose(comp_metrics[text_label]['number'], target_metrics[text_label]['support'], rel_tol=1e-6)
