@@ -7,7 +7,7 @@ channels:
 dependencies:
   - jupyter
   - nltk
-  - cudatoolkit=11.1
+  - cudatoolkit
   - mpmath
   - numpy
   - pandas
@@ -17,8 +17,11 @@ dependencies:
   - spacy
   - sympy
   - tqdm
+  - datasetsy
+  - transformers
+  - tokenizers
   - pytest
   - yapf
   - pip
   - pip:
-    - transformers
+    - seqeval
