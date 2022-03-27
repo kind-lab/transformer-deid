@@ -4,11 +4,14 @@
 
 Here are instructions for training a model using the Colab notebook script.
 
-### Clone repo
+### Repo clone config
 At the **Clone repo** section, put in GitHub user and access token in indicated locations.
 
 ### Modify hyperparameters for training
 In the first few lines after **Train transformer**, there are hyperparameters that can be changed for training, including epochs and batch size.
+
+### Authorize google account
+When the first cell is run, follow the prompt for authorization.
 
 ## Features
 
