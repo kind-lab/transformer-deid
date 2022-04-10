@@ -1,7 +1,9 @@
 # transformer-deid
 Deidentify medical data with transformers
 
-## Models
+## Training
+
+Models
 - BERT
 - DistilBERT
 - RoBERTa
