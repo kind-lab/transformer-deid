@@ -161,6 +161,10 @@ class DeidTask(object):
             examples['ann'].append(labels)
 
         return examples
+    
+    def set_test_set(self, new_test_dir):
+        self.test = self.load_data(Path(new_test_dir))
+        return None
 
 
 class DeidDataset(torch.utils.data.Dataset):
