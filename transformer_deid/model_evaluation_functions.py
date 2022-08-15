@@ -25,16 +25,12 @@ from transformer_deid.utils import convert_dict_to_native_types
 logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
     datefmt='%m/%d/%Y %H:%M:%S',
-    level=logging.INFO
-)
+    level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def create_deid_dataset(
-        texts,
-        labels,
-        tokenizer,
-        label2id: dict) -> DeidDataset:
+def create_deid_dataset(texts, labels, tokenizer,
+                        label2id: dict) -> DeidDataset:
     """Creates a dataset from set of texts and labels.
 
        Args:
@@ -55,17 +51,13 @@ def create_deid_dataset(
     # (2) identify split points
     # (3) output text as it was originally
     if split_long_sequences:
-        texts, labels = split_sequences(
-            tokenizer, texts, labels
-        )
+        texts, labels = split_sequences(tokenizer, texts, labels)
 
-    encodings = tokenizer(
-        texts,
-        is_split_into_words=False,
-        return_offsets_mapping=True,
-        padding=True,
-        truncation=True
-    )
+    encodings = tokenizer(texts,
+                          is_split_into_words=False,
+                          return_offsets_mapping=True,
+                          padding=True,
+                          truncation=True)
 
     # use the offset mappings in train_encodings to assign labels to tokens
     tags = assign_tags(encodings, labels)
@@ -109,8 +101,7 @@ def load_data(task_name, dataDir, testDir, tokenizerArch: str):
         # data_dir=f'/home/alistairewj/git/deid-gs/{task_name}',
         data_dir=dataDir,
         test_dir=testDir,
-        label_transform=label_transform
-    )
+        label_transform=label_transform)
 
     train_texts, train_labels = deid_task.train['text'], deid_task.train['ann']
     split_idx = int(0.8 * len(train_texts))
@@ -121,12 +112,12 @@ def load_data(task_name, dataDir, testDir, tokenizerArch: str):
     tokenizer = AutoTokenizer.from_pretrained(tokenizerArch)
     label2id = deid_task.label2id
 
-    train_dataset = create_deid_dataset(
-        train_texts, train_labels, tokenizer, label2id)
-    val_dataset = create_deid_dataset(
-        val_texts, val_labels, tokenizer, label2id)
-    test_dataset = create_deid_dataset(
-        test_texts, test_labels, tokenizer, label2id)
+    train_dataset = create_deid_dataset(train_texts, train_labels, tokenizer,
+                                        label2id)
+    val_dataset = create_deid_dataset(val_texts, val_labels, tokenizer,
+                                      label2id)
+    test_dataset = create_deid_dataset(test_texts, test_labels, tokenizer,
+                                       label2id)
 
     return deid_task, train_dataset, val_dataset, test_dataset
 
@@ -149,21 +140,14 @@ def load_new_test_set(deid_task, newTestPath: str, tokenizerArch: str):
     test_texts, test_labels = deid_task.test['text'], deid_task.test['ann']
     tokenizer = AutoTokenizer.from_pretrained(tokenizerArch)
 
-    test_dataset = create_deid_dataset(
-        test_texts,
-        test_labels,
-        tokenizer,
-        deid_task.label2id)
+    test_dataset = create_deid_dataset(test_texts, test_labels, tokenizer,
+                                       deid_task.label2id)
 
     return deid_task, test_dataset
 
 
-def eval_model(
-        modelDir: str,
-        deid_task: DeidTask,
-        train_dataset: DeidDataset,
-        val_dataset: DeidDataset,
-        test_dataset: DeidDataset):
+def eval_model(modelDir: str, deid_task: DeidTask, train_dataset: DeidDataset,
+               val_dataset: DeidDataset, test_dataset: DeidDataset):
     """Generates all metrics for single a model making inferences on a single dataset.
 
        Args:
@@ -197,15 +181,12 @@ def eval_model(
         weight_decay=0.01,
         logging_dir='./logs',
         logging_steps=10,
-        save_strategy='epoch'
-    )
+        save_strategy='epoch')
 
-    trainer = Trainer(
-        model=model,
-        args=training_args,
-        train_dataset=train_dataset,
-        eval_dataset=val_dataset
-    )
+    trainer = Trainer(model=model,
+                      args=training_args,
+                      train_dataset=train_dataset,
+                      eval_dataset=val_dataset)
 
     predictions, labels, _ = trainer.predict(test_dataset)
     predicted_label = np.argmax(predictions, axis=2)
@@ -214,27 +195,27 @@ def eval_model(
     metric_dir = "transformer_deid/token_evaluation.py"
     metric = load_metric(metric_dir)
 
-    results_multiclass = compute_metrics(
-        predicted_label, labels, deid_task.labels, metric=metric
-    )
+    results_multiclass = compute_metrics(predicted_label,
+                                         labels,
+                                         deid_task.labels,
+                                         metric=metric)
 
-    results_binary = compute_metrics(
-        predicted_label,
-        labels,
-        deid_task.labels,
-        metric=metric,
-        binary_evaluation=True)
+    results_binary = compute_metrics(predicted_label,
+                                     labels,
+                                     deid_task.labels,
+                                     metric=metric,
+                                     binary_evaluation=True)
 
     return results_multiclass, results_binary
+
 
 # function to return all metrics in two lists
 
 
-def eval_model_list(
-        modelDirList: list,
-        dataDir: str,
-        testDirList: list,
-        output_metric=None) -> list:
+def eval_model_list(modelDirList: list,
+                    dataDir: str,
+                    testDirList: list,
+                    output_metric=None) -> list:
     """Generate all metrics or a specific metric for a list of models over all test sets in a list of test sets
 
        Args:
