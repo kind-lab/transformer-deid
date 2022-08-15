@@ -30,9 +30,18 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def createDeidDataset(texts, labels, tokenizer, label2id: dict) -> DeidDataset:
-    """Create a dataset from set of texts and labels
-    note: label2id is a property of a DeidTask"""
+def create_deid_dataset(texts, labels, tokenizer, label2id: dict) -> DeidDataset:
+    """Creates a dataset from set of texts and labels. 
+
+       Args: 
+            texts: dict of text data, from, e.g., DeidTask.train['text']
+            labels: dict of annotations, from, e.g., DeidTask.train['ann'] 
+            tokenizer: HuggingFace tokenizer, e.g., loaded from AutoTokenizer.from_pretrained()
+            label2id: dict property of a DeidTask (see data.py)
+
+       Returns:
+            DeidDataset; see class definition in data.py
+    """
 
     # specify dataset arguments
     split_long_sequences = True
@@ -70,7 +79,22 @@ def createDeidDataset(texts, labels, tokenizer, label2id: dict) -> DeidDataset:
 
 
 def load_data(task_name, dataDir, testDir, tokenizerArch: str):
-    """Create a DeidTask; load the training and validation data from dataDir; load the test data from testDir"""
+    """Creates a DeidTask; loads the training, validation, and test data.
+    
+       Args:
+            task_name: origin of training data, e.g., 'i2b2_2014'
+            dataDir: directory with training data containing two folders ('txt' and 'ann')
+                divided 80-20 between training and validation sets
+            testDir: directory with testing data containing two folders ('txt' and 'ann')
+            tokenizerArch: name of HuggingFace pretrained tokenizer
+                e.g., 'bert-base-cased'
+
+       Returns:
+            deid_task: DeidTask, see data.py
+            train_dataset: DeidDataset of training data, generally 80% of train set
+            val_dataset: DeidDataset of validation data, generally 20% of train set
+            test_dataset: DeidDataset of training data
+    """
 
     # specify dataset arguments
     label_transform = 'base'
@@ -93,23 +117,34 @@ def load_data(task_name, dataDir, testDir, tokenizerArch: str):
     tokenizer = AutoTokenizer.from_pretrained(tokenizerArch)
     label2id = deid_task.label2id
 
-    train_dataset = createDeidDataset(
+    train_dataset = create_deid_dataset(
         train_texts, train_labels, tokenizer, label2id)
-    val_dataset = createDeidDataset(val_texts, val_labels, tokenizer, label2id)
-    test_dataset = createDeidDataset(
+    val_dataset = create_deid_dataset(val_texts, val_labels, tokenizer, label2id)
+    test_dataset = create_deid_dataset(
         test_texts, test_labels, tokenizer, label2id)
 
     return deid_task, train_dataset, val_dataset, test_dataset
 
 
 def load_new_test_set(deid_task, newTestPath: str, tokenizerArch: str):
-    """Set a new dataset as the test set in the DeidTask"""
+    """Sets a new dataset as the test set in the DeidTask. 
+    
+       Args:
+            deid_task: DeidTask to be changed, see data.py
+            newTestPath: directory to new test data containing txt and ann folders
+            tokenizerArch: name of HuggingFace pretrained tokenizer
+                e.g., 'bert-base-cased' 
+
+       Returns:
+            deid_task: modified DeidTask
+            test_dataset: DeidDataset corresponding to new directory
+    """
 
     deid_task.set_test_set(newTestPath)
     test_texts, test_labels = deid_task.test['text'], deid_task.test['ann']
     tokenizer = AutoTokenizer.from_pretrained(tokenizerArch)
 
-    test_dataset = createDeidDataset(
+    test_dataset = create_deid_dataset(
         test_texts,
         test_labels,
         tokenizer,
@@ -119,7 +154,20 @@ def load_new_test_set(deid_task, newTestPath: str, tokenizerArch: str):
 
 
 def eval_model(modelDir, deid_task, train_dataset, val_dataset, test_dataset):
-    """Generate all metrics for single a model making inferences on a single dataset"""
+    """Generates all metrics for single a model making inferences on a single dataset.
+    
+       Args:
+            modelDir: directory containing config.json, pytorch_model.bin, and training_args.bin
+                e.g., 'i2b2_2014_{base architecture}_Model_{epochs}'
+            deid_task: DeidTask, see data.py
+            train, val, and test_dataset: DeidDatasets, see data.py
+        
+       Returns:
+            results_multiclass: operating point statistics (precision, recall, f1) for each datatype
+                datatypes are: age, contact, date, ID, location, name, profession
+            results_binary: operating point statistics (precision, recall, f1) for binary label
+                i.e., PHI or non-PHI labels
+    """
 
     epochs = int(modelDir.split('_')[-1])
     out_dir = '/'.join(modelDir.split('/')[0:-1])
@@ -173,7 +221,21 @@ def eval_model(modelDir, deid_task, train_dataset, val_dataset, test_dataset):
 
 
 def eval_model_list(modelDirList, dataDir, testDirList, output_metric=None):
-    """Generate all metrics or a specific metric for a list of models over all test sets in a list of test sets"""
+    """Generate all metrics or a specific metric for a list of models over all test sets in a list of test sets
+    
+       Args:
+            modelDirList: list of model directories
+                each modelDir should have the form 'i2b2_2014_{base architecture}_Model_{epochs}'
+            dataDir: directory containing training/validation data with txt and ann folders
+            testDirList: list of test data directories
+                each test dir must have txt and ann folders
+            output_metric: name of metric to be returned from binary evaluation
+                if None, returns all metrics (multiclass and binary)
+
+       Returns:
+            results: list of lists, each entry corresponding to the output_metric argument
+                for a model's inference on a test dataset
+    """
 
     results = []
 
@@ -185,6 +247,8 @@ def eval_model_list(modelDirList, dataDir, testDirList, output_metric=None):
             tokenizerArch = 'bert-base-cased'
         elif baseArchitecture == 'roberta':
             tokenizerArch = 'roberta-base'
+        elif baseArchitecture == 'distilbert':
+            tokenizerArch = 'distilbert-base-cased'
 
         modelResults = []
 
