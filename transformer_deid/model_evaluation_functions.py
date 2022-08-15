@@ -30,12 +30,16 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def create_deid_dataset(texts, labels, tokenizer, label2id: dict) -> DeidDataset:
-    """Creates a dataset from set of texts and labels. 
+def create_deid_dataset(
+        texts,
+        labels,
+        tokenizer,
+        label2id: dict) -> DeidDataset:
+    """Creates a dataset from set of texts and labels.
 
-       Args: 
+       Args:
             texts: dict of text data, from, e.g., DeidTask.train['text']
-            labels: dict of annotations, from, e.g., DeidTask.train['ann'] 
+            labels: dict of annotations, from, e.g., DeidTask.train['ann']
             tokenizer: HuggingFace tokenizer, e.g., loaded from AutoTokenizer.from_pretrained()
             label2id: dict property of a DeidTask (see data.py)
 
@@ -80,7 +84,7 @@ def create_deid_dataset(texts, labels, tokenizer, label2id: dict) -> DeidDataset
 
 def load_data(task_name, dataDir, testDir, tokenizerArch: str):
     """Creates a DeidTask; loads the training, validation, and test data.
-    
+
        Args:
             task_name: origin of training data, e.g., 'i2b2_2014'
             dataDir: directory with training data containing two folders ('txt' and 'ann')
@@ -119,7 +123,8 @@ def load_data(task_name, dataDir, testDir, tokenizerArch: str):
 
     train_dataset = create_deid_dataset(
         train_texts, train_labels, tokenizer, label2id)
-    val_dataset = create_deid_dataset(val_texts, val_labels, tokenizer, label2id)
+    val_dataset = create_deid_dataset(
+        val_texts, val_labels, tokenizer, label2id)
     test_dataset = create_deid_dataset(
         test_texts, test_labels, tokenizer, label2id)
 
@@ -127,13 +132,13 @@ def load_data(task_name, dataDir, testDir, tokenizerArch: str):
 
 
 def load_new_test_set(deid_task, newTestPath: str, tokenizerArch: str):
-    """Sets a new dataset as the test set in the DeidTask. 
-    
+    """Sets a new dataset as the test set in the DeidTask.
+
        Args:
             deid_task: DeidTask to be changed, see data.py
             newTestPath: directory to new test data containing txt and ann folders
             tokenizerArch: name of HuggingFace pretrained tokenizer
-                e.g., 'bert-base-cased' 
+                e.g., 'bert-base-cased'
 
        Returns:
             deid_task: modified DeidTask
@@ -153,19 +158,24 @@ def load_new_test_set(deid_task, newTestPath: str, tokenizerArch: str):
     return deid_task, test_dataset
 
 
-def eval_model(modelDir, deid_task, train_dataset, val_dataset, test_dataset):
+def eval_model(
+        modelDir: str,
+        deid_task: DeidTask,
+        train_dataset: DeidDataset,
+        val_dataset: DeidDataset,
+        test_dataset: DeidDataset):
     """Generates all metrics for single a model making inferences on a single dataset.
-    
+
        Args:
             modelDir: directory containing config.json, pytorch_model.bin, and training_args.bin
                 e.g., 'i2b2_2014_{base architecture}_Model_{epochs}'
             deid_task: DeidTask, see data.py
             train, val, and test_dataset: DeidDatasets, see data.py
-        
+
        Returns:
-            results_multiclass: operating point statistics (precision, recall, f1) for each datatype
+            results_multiclass: dict of operating point statistics (precision, recall, f1) for each datatype
                 datatypes are: age, contact, date, ID, location, name, profession
-            results_binary: operating point statistics (precision, recall, f1) for binary label
+            results_binary: dict of operating point statistics (precision, recall, f1) for binary label
                 i.e., PHI or non-PHI labels
     """
 
@@ -220,9 +230,13 @@ def eval_model(modelDir, deid_task, train_dataset, val_dataset, test_dataset):
 # function to return all metrics in two lists
 
 
-def eval_model_list(modelDirList, dataDir, testDirList, output_metric=None):
+def eval_model_list(
+        modelDirList: list,
+        dataDir: str,
+        testDirList: list,
+        output_metric=None) -> list:
     """Generate all metrics or a specific metric for a list of models over all test sets in a list of test sets
-    
+
        Args:
             modelDirList: list of model directories
                 each modelDir should have the form 'i2b2_2014_{base architecture}_Model_{epochs}'
