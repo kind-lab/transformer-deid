@@ -12,7 +12,7 @@ from transformer_deid.label import Label
 
 class DeidTask(object):
     """Utility class for loading and preparing dataset from disk."""
-    def __init__(self, task_name, data_dir, label_transform=None):
+    def __init__(self, task_name, data_dir, test_dir=None, label_transform=None):
         """Initialize a data processor with the location of the data."""
         self.task_name = task_name
         self.data_dir = Path(data_dir)
@@ -26,7 +26,11 @@ class DeidTask(object):
         # load the train/test data from file
         # these are lists of dicts, each dict has three keys: guid, text, tags
         self.train = self.load_data(self.data_dir / 'train')
-        self.test = self.load_data(self.data_dir / 'test')
+        
+        if test_dir is not None: 
+            self.test = self.load_data(Path(test_dir))
+        else: 
+            self.test = self.load_data(self.data_dir / 'test')
 
         # create a list of unique labels
         self.labels = self.get_labels()
@@ -157,6 +161,10 @@ class DeidTask(object):
             examples['ann'].append(labels)
 
         return examples
+    
+    def set_test_set(self, new_test_dir):
+        self.test = self.load_data(Path(new_test_dir))
+        return None
 
 
 class DeidDataset(torch.utils.data.Dataset):
