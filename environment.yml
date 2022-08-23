@@ -17,7 +17,7 @@ dependencies:
   - spacy
   - sympy
   - tqdm
-  - datasetsy
+  - datasets
   - transformers
   - tokenizers
   - pytest
