@@ -1,16 +1,19 @@
 import argparse
 import logging
 from pathlib import Path
+from xmlrpc.client import Boolean
 from datasets import load_metric
 import os
 import csv
 import json
+import pprint
 from importlib.resources import open_text
 from transformers import AutoTokenizer
 
 from transformer_deid import model_evaluation_functions as eval
 from transformer_deid.label import Label
 from transformer_deid.evaluation import compute_metrics
+from transformer_deid.utils import convert_dict_to_native_types
 
 logging.basicConfig(
     level=logging.WARNING,
@@ -237,13 +240,21 @@ def parse_args():
         default=None
     )
 
+    parser.add_argument(
+        '-o',
+        '--output',
+        type=Boolean,
+        help=
+        'if True, create .json of outputs; if False (default) output to stdout',
+        default=False
+    )
+
     args = parser.parse_args()
 
     return args
 
 
 def main():
-    # TO DO: how should I handle the outputs?
     args = parse_args()
 
     path = args.path
@@ -254,7 +265,24 @@ def main():
         path, predictions=predictions, actual=actual
     )
 
-    return results_multiclass, results_binary
+    output = args.output
+
+    if output:
+        results = {
+            'results_multiclass':
+                convert_dict_to_native_types(results_multiclass),
+            'results_binary':
+                convert_dict_to_native_types(results_binary)
+        }
+
+        with open(path + '/eval_metrics.json', 'w') as outfile:
+            json.dump(results, outfile, indent=4)
+
+    else:
+        print('\nMulti-class results:')
+        pprint.pprint(results_multiclass)
+        print('\nBinary results')
+        pprint.pprint(results_binary)
 
 
 if __name__ == '__main__':

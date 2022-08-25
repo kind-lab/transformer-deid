@@ -1,5 +1,8 @@
 import argparse
 import logging
+import pprint
+import json
+from xmlrpc.client import Boolean
 from transformer_deid import model_evaluation_functions as eval
 
 logging.basicConfig(
@@ -45,6 +48,14 @@ def parse_args():
         default='overall_f1',
         help='one of the keys of results_binary or None; default to overall_f1'
     )
+    parser.add_argument(
+        '-o',
+        '--output',
+        type=Boolean,
+        help=
+        'if True, create .json of outputs; if False (default) output to stdout',
+        default=False
+    )
 
     args = parser.parse_args()
 
@@ -65,6 +76,22 @@ def main():
     results = eval.eval_model_list(
         model_list, dataDir, test_data_list, output_metric=metric
     )
+
+    output = args.output
+
+    dict_results = {
+        model_list[i]:
+        {test_data_list[j]: results[i][j]
+         for j in range(len(test_data_list))}
+        for i in range(len(model_list))
+    }
+
+    if output:
+        with open(f'eval_{metric}.json', 'w') as outfile:
+            json.dump(dict_results, outfile, indent=4)
+
+    else:
+        pprint.pprint(dict_results)
 
     return results
 
