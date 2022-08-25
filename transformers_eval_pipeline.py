@@ -2,9 +2,11 @@ import argparse
 import logging
 from transformer_deid import model_evaluation_functions as eval
 
-logging.basicConfig(level=logging.WARNING,
-                    format='%(asctime)s %(levelname)-8s %(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S')
+logging.basicConfig(
+    level=logging.WARNING,
+    format='%(asctime)s %(levelname)-8s %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -60,10 +62,9 @@ def main():
     test_data_list = args.test_data
     metric = args.metric
 
-    results = eval.eval_model_list(model_list,
-                                   dataDir,
-                                   test_data_list,
-                                   output_metric=metric)
+    results = eval.eval_model_list(
+        model_list, dataDir, test_data_list, output_metric=metric
+    )
 
     return results
 

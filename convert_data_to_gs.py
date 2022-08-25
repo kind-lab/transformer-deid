@@ -14,7 +14,9 @@ parser.add_argument(
     type=str,
     default=None,
     required=True,
-    choices=['i2b2_2006', 'i2b2_2014', 'physionet', 'physionet_google', 'opendeid'],
+    choices=[
+        'i2b2_2006', 'i2b2_2014', 'physionet', 'physionet_google', 'opendeid'
+    ],
     help='source dataset (impacts processing)'
 )
 parser.add_argument(
@@ -52,7 +54,7 @@ physionet_gs = {
 
 physionet_google = {'columns': ['record_id', 'begin', 'length', 'type']}
 
-opendeid = {'tag_list': ['id', 'start', 'end', 'text','TYPE']}
+opendeid = {'tag_list': ['id', 'start', 'end', 'text', 'TYPE']}
 
 # our output dataframe will have consistent columns
 COLUMN_NAMES = [
@@ -259,7 +261,8 @@ def load_opendeid(input_path, verbose_flag):
         tags = list()
         for tag in tags_xml:
             tags.append(
-                [document_id] + [tag.get(t) for t in opendeid['tag_list']] + ['']
+                [document_id] + [tag.get(t)
+                                 for t in opendeid['tag_list']] + ['']
             )
 
         records.append(text)
