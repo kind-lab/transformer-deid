@@ -6,6 +6,7 @@ import xml.etree.ElementTree as ET
 
 import pandas as pd
 from tqdm import tqdm
+from functools import partial
 
 parser = argparse.ArgumentParser(description='Convert i2b2 annotations')
 parser.add_argument(
@@ -14,7 +15,9 @@ parser.add_argument(
     type=str,
     default=None,
     required=True,
-    choices=['i2b2_2006', 'i2b2_2014', 'physionet', 'physionet_google'],
+    choices=[
+        'i2b2_2006', 'i2b2_2014', 'physionet', 'physionet_google', 'opendeid'
+    ],
     help='source dataset (impacts processing)'
 )
 parser.add_argument(
@@ -51,6 +54,8 @@ physionet_gs = {
 }
 
 physionet_google = {'columns': ['record_id', 'begin', 'length', 'type']}
+
+opendeid = {'tag_list': ['id', 'start', 'end', 'text', 'TYPE']}
 
 # our output dataframe will have consistent columns
 COLUMN_NAMES = [
@@ -199,7 +204,9 @@ def load_physionet_google(input_path, verbose_flag):
     return reports, df, document_ids
 
 
-def load_i2b2_2014(input_path, verbose_flag):
+def load_i2b2_2014_format_xml(
+    input_path, verbose_flag, taglist=i2b2_2014['tag_list'], comments=True
+):
     files = os.listdir(input_path)
 
     # filter to files of a given extension
@@ -242,10 +249,14 @@ def load_i2b2_2014(input_path, verbose_flag):
 
         # example tag:
         # <DATE id="P0" start="16" end="20" text="2069" TYPE="DATE" comment="" />
+        addition = []
+        if not comments:
+            addition = ['']
+
         tags = list()
         for tag in tags_xml:
             tags.append(
-                [document_id] + [tag.get(t) for t in i2b2_2014['tag_list']]
+                [document_id] + [tag.get(t) for t in taglist] + addition
             )
 
         records.append(text)
@@ -327,13 +338,20 @@ def load_i2b2_2006(input_path, verbose_flag):
 
 def get_data_type_info(data_type):
     if data_type == 'i2b2_2014':
-        return load_i2b2_2014
+        return load_i2b2_2014_format_xml
     elif data_type == 'physionet':
         return load_physionet_gs
     elif data_type == 'physionet_google':
         return load_physionet_google
     elif data_type == 'i2b2_2006':
         return load_i2b2_2006
+    elif data_type == 'opendeid':
+        load_opendeid = partial(
+            load_i2b2_2014_format_xml,
+            taglist=opendeid['tag_list'],
+            comments=False
+        )
+        return load_opendeid
     else:
         raise ValueError(f'Unrecognized: --data {data_type}')
 
