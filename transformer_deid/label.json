@@ -9,7 +9,8 @@
             "RELATIVEPROXYNAME",
             "PTNAME",
             "PTNAMEINITIAL",
-            "KEYVALUE"
+            "KEYVALUE",
+            "INITIALS"
         ],
         "PROFESSION": [
             "PROFESSION"
