@@ -104,10 +104,10 @@ def load_data(path, file_ext, label_map) -> dict:
         # these datasets have consistent folder structures:
         #   root_path/txt/RECORD_NAME.txt - has text
         #   root_path/ann/RECORD_NAME.gs - has annotations
-        if file_ext == 'ann':
+        if file_ext.endswith('ann'):
             labels = load_label(ann_path / f'{f[:-4]}.gs', label_map)
 
-        elif file_ext == 'output':
+        elif file_ext.endswith('output'):
             labels = load_label(ann_path / f'{f[:-4]}.ann', label_map)
 
         examples['guid'].append(guid)
@@ -275,7 +275,7 @@ def main():
                 convert_dict_to_native_types(results_binary)
         }
 
-        with open(path + '/eval_metrics.json', 'w') as outfile:
+        with open(path + '/pydeid_eval_metrics.json', 'w') as outfile:
             json.dump(results, outfile, indent=4)
 
     else:

@@ -101,7 +101,7 @@ def main():
     args = parse_args()
 
     task_name = args.task_name
-    dataDir = f'./{task_name}'
+    dataDir = f'./../{task_name}'
     testDir = dataDir + '/test'
     baseArchitecture = args.architecture
 
@@ -109,11 +109,13 @@ def main():
         baseArchitecture
     )
 
+    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+
     deid_task, train_dataset, val_dataset, __ = load_data(
         task_name, dataDir, testDir, tokenizerArch
     )
 
-    model = load_model(tokenizerArch, num_labels=len(deid_task.labels))
+    model = load_model(tokenizerArch, num_labels=len(deid_task.labels)).to(device)
 
     epochs = args.epochs
     train_batch_size = 8
@@ -128,7 +130,7 @@ def main():
         weight_decay=0.01,
         logging_dir='./logs',
         logging_steps=10,
-        save_strategy='epoch'
+        save_strategy='no'
     )
 
     trainer = Trainer(
@@ -144,7 +146,7 @@ def main():
 
     trainer.train()
 
-    save_location = f'{out_dir}/{task_name}_DistilBert_Model_{epochs}'
+    save_location = f'{out_dir}/{task_name}_{baseArchitecture}_Model_{epochs}'
 
     trainer.save_model(save_location)
 
