@@ -114,7 +114,7 @@ class DeidTask(object):
             if self.label_map is not None:
                 labels = [
                     Label(
-                        entity_type=self.label_map[row[idx[0]]],
+                        entity_type=self.label_map[row[idx[0]].upper()],
                         start=int(row[idx[1]]),
                         length=int(row[idx[2]]) - int(row[idx[1]]),
                         entity=row[idx[3]]
@@ -123,7 +123,7 @@ class DeidTask(object):
             else:
                 labels = [
                     Label(
-                        entity_type=row[idx[0]],
+                        entity_type=row[idx[0].upper()],
                         start=int(row[idx[1]]),
                         length=int(row[idx[2]]) - int(row[idx[1]]),
                         entity=row[idx[3]]

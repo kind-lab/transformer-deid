@@ -17,6 +17,7 @@
         ],
         "LOCATION": [
             "LOCATION",
+            "DEPARTMENT",
             "HOSPITAL",
             "ORGANIZATION",
             "URL",
