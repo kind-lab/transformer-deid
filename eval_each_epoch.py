@@ -1,6 +1,4 @@
 import argparse
-import gspread
-from google.auth import default
 import math
 import pprint
 
@@ -192,12 +190,13 @@ def main():
         logging_steps=10,
         save_strategy='epoch'
     )
-
-    with open(str(root) + '/training_eval.csv', 'at') as f:
-        header = ','.join(
-            map(str, multi_class_fields + binary_fields + ['test_loss'])
-        ) + '\n'
-        f.write(header)
+    
+    if not os.path.exists(str(root) + '/training_eval.csv'):
+        with open(str(root) + '/training_eval.csv', 'wt') as f:
+            header = 'epoch,' + ','.join(
+                map(str, multi_class_fields + binary_fields + ['test_loss'])
+            ) + '\n'
+            f.write(header)
 
     checkpoints = [
         item for item in os.listdir(root)
