@@ -9,13 +9,15 @@
             "RELATIVEPROXYNAME",
             "PTNAME",
             "PTNAMEINITIAL",
-            "KEYVALUE"
+            "KEYVALUE",
+            "INITIALS"
         ],
         "PROFESSION": [
             "PROFESSION"
         ],
         "LOCATION": [
             "LOCATION",
+            "DEPARTMENT",
             "HOSPITAL",
             "ORGANIZATION",
             "URL",

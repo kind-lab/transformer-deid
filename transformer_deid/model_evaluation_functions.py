@@ -167,8 +167,10 @@ def eval_model(modelDir: str, deid_task: DeidTask, train_dataset: DeidDataset,
     out_dir = '/'.join(modelDir.split('/')[0:-1])
     train_batch_size = 8
 
+    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+
     model = AutoModelForTokenClassification.from_pretrained(
-        modelDir, num_labels=len(deid_task.labels))
+        modelDir, num_labels=len(deid_task.labels)).to(device)
 
     model.eval()
 
