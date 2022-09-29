@@ -132,6 +132,7 @@
             "DOCTOR",
             "KEYVALUE",
             "HCPNAME",
+            "INITIALS",
             "LOCATION",
             "ORGANIZATION",
             "HOSPITAL",

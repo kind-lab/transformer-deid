@@ -63,7 +63,7 @@ def load_label(filename, label_map):
         if label_map is not None:
             labels = [
                 Label(
-                    entity_type=label_map[row[idx[0]]],
+                    entity_type=label_map[row[idx[0]].upper()],
                     start=int(row[idx[1]]),
                     length=int(row[idx[2]]) - int(row[idx[1]]),
                     entity=row[idx[3]]
@@ -72,7 +72,7 @@ def load_label(filename, label_map):
         else:
             labels = [
                 Label(
-                    entity_type=row[idx[0]],
+                    entity_type=row[idx[0].upper()],
                     start=int(row[idx[1]]),
                     length=int(row[idx[2]]) - int(row[idx[1]]),
                     entity=row[idx[3]]
@@ -176,8 +176,8 @@ def compare_annotations(path, predictions=None, actual=None):
     tokenizer = AutoTokenizer.from_pretrained(tokenizerArch)
 
     # generate DeidDatasets for both sets of annotations
-    labels = get_labels(output_dict['ann'])
-    label2id = {tag: id for id, tag in enumerate(labels)}
+    pred_labels = get_labels(output_dict['ann'])
+    label2id = {tag: id for id, tag in enumerate(pred_labels)}
     output_dataset = eval.create_deid_dataset(
         output_dict['text'], output_dict['ann'], tokenizer, label2id
     )
@@ -196,13 +196,14 @@ def compare_annotations(path, predictions=None, actual=None):
     metric = load_metric(metric_dir)
 
     results_multiclass = compute_metrics(
-        predicted_label, real_labels, labels, metric=metric
+        predicted_label, real_labels, labels, pred_labels = pred_labels, metric=metric
     )
 
     results_binary = compute_metrics(
         predicted_label,
         real_labels,
         labels,
+        pred_labels=pred_labels,
         metric=metric,
         binary_evaluation=True
     )

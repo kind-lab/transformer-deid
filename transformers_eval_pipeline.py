@@ -4,6 +4,7 @@ import pprint
 import json
 from xmlrpc.client import Boolean
 from transformer_deid import model_evaluation_functions as eval
+from transformer_deid.utils import convert_dict_to_native_types
 
 logging.basicConfig(
     level=logging.WARNING,
@@ -45,8 +46,8 @@ def parse_args():
         '-c',
         '--metric',
         type=str,
-        default='overall_f1',
-        help='one of the keys of results_binary or None; default to overall_f1'
+        default=None,
+        help='one of the keys of results_binary or None; default to None'
     )
     parser.add_argument(
         '-o',
@@ -78,6 +79,13 @@ def main():
     )
 
     output = args.output
+
+    if metric == None:
+        for model_results in results:
+            for result in model_results:
+                for i in result:
+                    i = convert_dict_to_native_types(i)
+
 
     dict_results = {
         model_list[i]:

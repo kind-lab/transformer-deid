@@ -8,42 +8,56 @@ import pandas as pd
 from tqdm import tqdm
 from functools import partial
 
-parser = argparse.ArgumentParser(description='Convert i2b2 annotations')
-parser.add_argument(
-    '-d',
-    '--data_type',
-    type=str,
-    default=None,
-    required=True,
-    choices=[
-        'i2b2_2006', 'i2b2_2014', 'physionet', 'physionet_google', 'opendeid'
-    ],
-    help='source dataset (impacts processing)'
-)
-parser.add_argument(
-    '-i',
-    '--input',
-    type=str,
-    default=None,
-    required=True,
-    help='folder or file to convert'
-)
-parser.add_argument(
-    '-o',
-    '--output',
-    type=str,
-    default=None,
-    required=True,
-    help='folder to output converted annotations'
-)
+def parse_args():
+    parser = argparse.ArgumentParser(description='Convert i2b2 annotations')
+    parser.add_argument(
+        '-d',
+        '--data_type',
+        type=str,
+        default=None,
+        required=True,
+        choices=[
+            'i2b2_2006', 'i2b2_2014', 'physionet', 'physionet_google', 'opendeid'
+        ],
+        help='source dataset (impacts processing)'
+    )
+    parser.add_argument(
+        '-i',
+        '--input',
+        type=str,
+        default=None,
+        required=True,
+        help='folder or file to convert'
+    )
+    parser.add_argument(
+        '-o',
+        '--output',
+        type=str,
+        default=None,
+        required=True,
+        help='folder to output converted annotations'
+    )
 
-# optionally also output a single CSV with all the data
-parser.add_argument(
-    '-q',
-    '--quiet',
-    action='store_true',
-    help='suppress peasants discussing their work'
-)
+    # optionally also output a single CSV with all the data
+    parser.add_argument(
+        '-q',
+        '--quiet',
+        action='store_true',
+        help='suppress peasants discussing their work'
+    )
+
+    # optionally only create annotation files
+    parser.add_argument(
+        '-a',
+        '--annotation_only',
+        default = False,
+        required = False, 
+        help='if True, saves only annotation files; if False (default) returns both annotations and plain text'
+    )
+
+    args = parser.parse_args()
+
+    return args
 
 # define a dictionary of constant values for each dataset
 i2b2_2014 = {'tag_list': ['id', 'start', 'end', 'text', 'TYPE', 'comment']}
@@ -223,6 +237,8 @@ def load_i2b2_2014_format_xml(
 
     records, annotations, document_ids = [], [], []
     for f in files:
+        if verbose_flag:
+            print(f'Loading annotations from {f}')
         # document ID is filename minus last extension
         document_id = f.split('.')
         if len(document_id) > 1:
@@ -356,12 +372,13 @@ def get_data_type_info(data_type):
         raise ValueError(f'Unrecognized: --data {data_type}')
 
 
-def main(args):
-    args = parser.parse_args(args)
+def main():
+    args = parse_args()
 
     input_path = args.input
     out_path = args.output
     verbose_flag = not args.quiet
+    annotations_only = args.annotation_only
 
     # prep output folders if they don't exist
     if not os.path.exists(out_path):
@@ -392,10 +409,11 @@ def main(args):
         df_out.to_csv(
             os.path.join(out_path, 'ann', document_id + '.gs'), index=False
         )
-        with open(
-            os.path.join(out_path, 'txt', document_id + '.txt'), 'w'
-        ) as fp:
-            fp.write(reports[i])
+        if not annotations_only:
+            with open(
+                os.path.join(out_path, 'txt', document_id + '.txt'), 'w'
+            ) as fp:
+                fp.write(reports[i])
 
     if verbose_flag:
         i += 1
@@ -405,4 +423,4 @@ def main(args):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    main()

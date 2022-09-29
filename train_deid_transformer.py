@@ -130,7 +130,8 @@ def main():
         weight_decay=0.01,
         logging_dir='./logs',
         logging_steps=10,
-        save_strategy='no'
+        save_strategy='steps',
+        save_steps=1155
     )
 
     trainer = Trainer(

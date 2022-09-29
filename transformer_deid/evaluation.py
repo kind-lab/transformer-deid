@@ -2,11 +2,15 @@
 import numpy as np
 from datasets import load_metric
 
-def compute_metrics(predictions, labels, label_list, metric=load_metric("seqeval"), binary_evaluation=False) -> dict:
+def compute_metrics(predictions, labels, label_list, pred_labels = None, metric=load_metric("seqeval"), binary_evaluation=False) -> dict:
     """Returns a dictionary of operating point statistics (Precision/Recall/F1)."""
+    # Optional labels for prediction if labels differ across datasets
+    if pred_labels == None:
+        pred_labels = label_list
+
     # Remove ignored index (special tokens)
     true_predictions = [
-        [label_list[p] for (p, l) in zip(prediction, label) if l != -100]
+        [pred_labels[p] for (p, l) in zip(prediction, label) if l != -100]
         for prediction, label in zip(predictions, labels)
     ]
     true_labels = [
