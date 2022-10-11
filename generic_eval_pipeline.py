@@ -187,19 +187,19 @@ def compare_annotations(path, predictions=None, actual=None):
     metric_dir = "transformer_deid/token_evaluation.py"
     metric = load_metric(metric_dir)
 
-    predicted_label = eval.decode_labels(predicted_label, pred_labels, true_labels=real_labels)
+    predicted_label = eval.decode_labels(predicted_label,
+                                         pred_labels,
+                                         true_labels=real_labels)
     real_labels = eval.decode_labels(real_labels, labels)
 
-    results_multiclass = compute_metrics(
-        predicted_label, real_labels, metric=metric
-    )
+    results_multiclass = compute_metrics(predicted_label,
+                                         real_labels,
+                                         metric=metric)
 
-    results_binary = compute_metrics(
-        predicted_label,
-        real_labels,
-        metric=metric,
-        binary_evaluation=True
-    )
+    results_binary = compute_metrics(predicted_label,
+                                     real_labels,
+                                     metric=metric,
+                                     binary_evaluation=True)
 
     return results_multiclass, results_binary
 
