@@ -10,16 +10,19 @@
             "PTNAME",
             "PTNAMEINITIAL",
             "KEYVALUE",
-            "INITIALS"
+            "INITIALS", 
+            "MISC"
         ],
         "PROFESSION": [
             "PROFESSION"
         ],
         "LOCATION": [
             "LOCATION",
+            "LOC",
             "DEPARTMENT",
             "HOSPITAL",
             "ORGANIZATION",
+            "ORG",
             "URL",
             "STREET",
             "STATE",
@@ -38,7 +41,8 @@
         ],
         "DATE": [
             "DATE",
-            "DATEYEAR"
+            "DATEYEAR", 
+            "TIME"
         ],
         "ID": [
             "BIOID",
@@ -46,6 +50,7 @@
             "HEALTHPLAN",
             "IDNUM",
             "MEDICALRECORD",
+            "MRN",
             "ID",
             "IDENTIFIER",
             "OTHER", 
