@@ -195,15 +195,16 @@ def compare_annotations(path, predictions=None, actual=None):
     metric_dir = "transformer_deid/token_evaluation.py"
     metric = load_metric(metric_dir)
 
+    predicted_label = eval.decode_labels(predicted_label, pred_labels, true_labels=real_labels)
+    real_labels = eval.decode_labels(real_labels, labels)
+
     results_multiclass = compute_metrics(
-        predicted_label, real_labels, labels, pred_labels = pred_labels, metric=metric
+        predicted_label, real_labels, metric=metric
     )
 
     results_binary = compute_metrics(
         predicted_label,
         real_labels,
-        labels,
-        pred_labels=pred_labels,
         metric=metric,
         binary_evaluation=True
     )
@@ -276,7 +277,7 @@ def main():
                 convert_dict_to_native_types(results_binary)
         }
 
-        with open(path + '/pydeid_eval_metrics.json', 'w') as outfile:
+        with open(path + f'/{predictions}_results.json', 'w') as outfile:
             json.dump(results, outfile, indent=4)
 
     else:
