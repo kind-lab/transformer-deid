@@ -106,7 +106,8 @@ def load_data(task_name, dataDir, testDir, tokenizerArch: str):
     train_texts, train_labels = deid_task.train['text'], deid_task.train['ann']
     split_idx = int(0.8 * len(train_texts))
     val_texts, val_labels = train_texts[split_idx:], train_labels[split_idx:]
-    train_texts, train_labels = train_texts[:split_idx], train_labels[:split_idx]
+    train_texts, train_labels = train_texts[:split_idx], train_labels[:
+                                                                     split_idx]
     test_texts, test_labels = deid_task.test['text'], deid_task.test['ann']
 
     tokenizer = AutoTokenizer.from_pretrained(tokenizerArch)
@@ -144,6 +145,30 @@ def load_new_test_set(deid_task, newTestPath: str, tokenizerArch: str):
                                        deid_task.label2id)
 
     return deid_task, test_dataset
+
+
+def decode_labels(labels, lookup_table, true_labels=None):
+    """Generates a list of human-interpretable string labels (e.g., NAME) from integer labels.
+
+       Args:
+            labels: integer labels generated from prediction task or from conversion of true labels to integers
+            lookup_table: list of labels where index corresponds to integer label
+            true_labels: pass when labels is predicted; integer labels of the true categories;
+                         used to remove ignored indices/special tokens (-100)
+       
+       Returns:
+            str_labels: list of human-readable labels (e.g. NAME, LOCATION)
+    """
+    # if labels is the actual label values
+    if true_labels is None:
+        str_labels = [[lookup_table[l] for l in label if l != -100]
+                      for label in labels]
+    # else labels is predicted label values
+    else:
+        str_labels = [[
+            lookup_table[p] for (p, l) in zip(prediction, label) if l != -100
+        ] for prediction, label in zip(labels, true_labels)]
+    return str_labels
 
 
 def eval_model(modelDir: str, deid_task: DeidTask, train_dataset: DeidDataset,
