@@ -10,16 +10,19 @@
             "PTNAME",
             "PTNAMEINITIAL",
             "KEYVALUE",
-            "INITIALS"
+            "INITIALS", 
+            "MISC"
         ],
         "PROFESSION": [
             "PROFESSION"
         ],
         "LOCATION": [
             "LOCATION",
+            "LOC",
             "DEPARTMENT",
             "HOSPITAL",
             "ORGANIZATION",
+            "ORG",
             "URL",
             "STREET",
             "STATE",
@@ -38,7 +41,8 @@
         ],
         "DATE": [
             "DATE",
-            "DATEYEAR"
+            "DATEYEAR", 
+            "TIME"
         ],
         "ID": [
             "BIOID",
@@ -46,9 +50,14 @@
             "HEALTHPLAN",
             "IDNUM",
             "MEDICALRECORD",
+            "MRN",
             "ID",
             "IDENTIFIER",
-            "OTHER"
+            "OTHER", 
+            "MRN", 
+            "000000", 
+            "ACCESSION", 
+            "GENERAL-ORDER"
         ],
         "CONTACT": [
             "EMAIL",
@@ -56,7 +65,8 @@
             "PHONE",
             "CONTACT",
             "IPADDR",
-            "IPADDRESS"
+            "IPADDRESS", 
+            "EMAIL/URL"
         ],
         "O": [
             "O"
@@ -132,6 +142,7 @@
             "DOCTOR",
             "KEYVALUE",
             "HCPNAME",
+            "INITIALS",
             "LOCATION",
             "ORGANIZATION",
             "HOSPITAL",

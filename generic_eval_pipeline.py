@@ -15,11 +15,9 @@ from transformer_deid.label import Label
 from transformer_deid.evaluation import compute_metrics
 from transformer_deid.utils import convert_dict_to_native_types
 
-logging.basicConfig(
-    level=logging.WARNING,
-    format='%(asctime)s %(levelname)-8s %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
+logging.basicConfig(level=logging.WARNING,
+                    format='%(asctime)s %(levelname)-8s %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S')
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -29,9 +27,8 @@ def get_label_map(transform):
 
     # label_membership has different label transforms as keys
     if transform not in label_map:
-        raise KeyError(
-            'Unable to find label transform %s in label.json' % transform
-        )
+        raise KeyError('Unable to find label transform %s in label.json' %
+                       transform)
     label_map = label_map[transform]
 
     # label_map has items "harmonized_label": ["label 1", "label 2", ...]
@@ -62,21 +59,17 @@ def load_label(filename, label_map):
         # iterate through the CSV and load in the labels
         if label_map is not None:
             labels = [
-                Label(
-                    entity_type=label_map[row[idx[0]]],
-                    start=int(row[idx[1]]),
-                    length=int(row[idx[2]]) - int(row[idx[1]]),
-                    entity=row[idx[3]]
-                ) for row in csvreader
+                Label(entity_type=label_map[row[idx[0]].upper()],
+                      start=int(row[idx[1]]),
+                      length=int(row[idx[2]]) - int(row[idx[1]]),
+                      entity=row[idx[3]]) for row in csvreader
             ]
         else:
             labels = [
-                Label(
-                    entity_type=row[idx[0]],
-                    start=int(row[idx[1]]),
-                    length=int(row[idx[2]]) - int(row[idx[1]]),
-                    entity=row[idx[3]]
-                ) for row in csvreader
+                Label(entity_type=row[idx[0].upper()],
+                      start=int(row[idx[1]]),
+                      length=int(row[idx[2]]) - int(row[idx[1]]),
+                      entity=row[idx[3]]) for row in csvreader
             ]
 
     return labels
@@ -119,9 +112,8 @@ def load_data(path, file_ext, label_map) -> dict:
 
 def get_labels(ann_dict):
     """Gets the list of labels for this data set."""
-    unique_labels = set(
-        label.entity_type for labels in ann_dict for label in labels
-    )
+    unique_labels = set(label.entity_type for labels in ann_dict
+                        for label in labels)
 
     # add in test set labels
     # unique_labels_test = set(label.entity_type for labels in self.test['ann'] for label in labels)
@@ -176,17 +168,17 @@ def compare_annotations(path, predictions=None, actual=None):
     tokenizer = AutoTokenizer.from_pretrained(tokenizerArch)
 
     # generate DeidDatasets for both sets of annotations
-    labels = get_labels(output_dict['ann'])
-    label2id = {tag: id for id, tag in enumerate(labels)}
-    output_dataset = eval.create_deid_dataset(
-        output_dict['text'], output_dict['ann'], tokenizer, label2id
-    )
+    pred_labels = get_labels(output_dict['ann'])
+    label2id = {tag: id for id, tag in enumerate(pred_labels)}
+    output_dataset = eval.create_deid_dataset(output_dict['text'],
+                                              output_dict['ann'], tokenizer,
+                                              label2id)
 
     labels = get_labels(actual_dict['ann'])
     label2id = {tag: id for id, tag in enumerate(labels)}
-    actual_dataset = eval.create_deid_dataset(
-        actual_dict['text'], actual_dict['ann'], tokenizer, label2id
-    )
+    actual_dataset = eval.create_deid_dataset(actual_dict['text'],
+                                              actual_dict['ann'], tokenizer,
+                                              label2id)
 
     predicted_label = output_dataset.labels
     real_labels = actual_dataset.labels
@@ -195,17 +187,19 @@ def compare_annotations(path, predictions=None, actual=None):
     metric_dir = "transformer_deid/token_evaluation.py"
     metric = load_metric(metric_dir)
 
-    results_multiclass = compute_metrics(
-        predicted_label, real_labels, labels, metric=metric
-    )
+    predicted_label = eval.decode_labels(predicted_label,
+                                         pred_labels,
+                                         true_labels=real_labels)
+    real_labels = eval.decode_labels(real_labels, labels)
 
-    results_binary = compute_metrics(
-        predicted_label,
-        real_labels,
-        labels,
-        metric=metric,
-        binary_evaluation=True
-    )
+    results_multiclass = compute_metrics(predicted_label,
+                                         real_labels,
+                                         metric=metric)
+
+    results_binary = compute_metrics(predicted_label,
+                                     real_labels,
+                                     metric=metric,
+                                     binary_evaluation=True)
 
     return results_multiclass, results_binary
 
@@ -213,8 +207,7 @@ def compare_annotations(path, predictions=None, actual=None):
 def parse_args():
     parser = argparse.ArgumentParser(
         description=
-        'Compare gold-standard annotations to those generated by pydeid'
-    )
+        'Compare gold-standard annotations to those generated by pydeid')
 
     parser.add_argument(
         '-p',
@@ -229,16 +222,14 @@ def parse_args():
         '--predictions',
         type=str,
         help='name of directory with predicted annotations; defaults to output',
-        default=None
-    )
+        default=None)
 
     parser.add_argument(
         '-a',
         '--actual',
         type=str,
         help='name of directory with predicted annotations; defaults to ann',
-        default=None
-    )
+        default=None)
 
     parser.add_argument(
         '-o',
@@ -246,8 +237,7 @@ def parse_args():
         type=Boolean,
         help=
         'if True, create .json of outputs; if False (default) output to stdout',
-        default=False
-    )
+        default=False)
 
     args = parser.parse_args()
 
@@ -262,20 +252,18 @@ def main():
     actual = args.actual
 
     results_multiclass, results_binary = compare_annotations(
-        path, predictions=predictions, actual=actual
-    )
+        path, predictions=predictions, actual=actual)
 
     output = args.output
 
     if output:
         results = {
             'results_multiclass':
-                convert_dict_to_native_types(results_multiclass),
-            'results_binary':
-                convert_dict_to_native_types(results_binary)
+            convert_dict_to_native_types(results_multiclass),
+            'results_binary': convert_dict_to_native_types(results_binary)
         }
 
-        with open(path + '/pydeid_eval_metrics.json', 'w') as outfile:
+        with open(path + f'/{predictions}_results.json', 'w') as outfile:
             json.dump(results, outfile, indent=4)
 
     else:

@@ -4,12 +4,11 @@ import pprint
 import json
 from xmlrpc.client import Boolean
 from transformer_deid import model_evaluation_functions as eval
+from transformer_deid.utils import convert_dict_to_native_types
 
-logging.basicConfig(
-    level=logging.WARNING,
-    format='%(asctime)s %(levelname)-8s %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
+logging.basicConfig(level=logging.WARNING,
+                    format='%(asctime)s %(levelname)-8s %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S')
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -45,17 +44,15 @@ def parse_args():
         '-c',
         '--metric',
         type=str,
-        default='overall_f1',
-        help='one of the keys of results_binary or None; default to overall_f1'
-    )
+        default=None,
+        help='one of the keys of results_binary or None; default to None')
     parser.add_argument(
         '-o',
         '--output',
         type=Boolean,
         help=
         'if True, create .json of outputs; if False (default) output to stdout',
-        default=False
-    )
+        default=False)
 
     args = parser.parse_args()
 
@@ -73,11 +70,15 @@ def main():
     test_data_list = args.test_data
     metric = args.metric
 
-    results = eval.eval_model_list(
-        model_list, dataDir, test_data_list, output_metric=metric
-    )
+    results = eval.eval_model_list(model_list,
+                                   dataDir,
+                                   test_data_list,
+                                   output_metric=metric)
 
     output = args.output
+
+    if metric is None:
+        [convert_dict_to_native_types(i) for model_results in results for result in model_results for i in result]
 
     dict_results = {
         model_list[i]:

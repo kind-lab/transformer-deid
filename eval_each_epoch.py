@@ -188,7 +188,8 @@ def main():
         weight_decay=0.01,
         logging_dir='./logs',
         logging_steps=10,
-        save_strategy='epoch'
+        save_strategy='steps',
+        eval_steps=1155
     )
     
     if not os.path.exists(str(root) + '/training_eval.csv'):
