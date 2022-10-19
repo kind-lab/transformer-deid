@@ -80,7 +80,7 @@ COLUMN_NAMES = [
 ]
 
 
-def load_physionet_text(text_filename, verbose_flag=False):
+def load_physionet_text(text_filename):
     """Loads text from the PhysioNet id.text file.
     
     Output
@@ -92,7 +92,7 @@ def load_physionet_text(text_filename, verbose_flag=False):
     with open(text_filename, 'r') as fp:
         END_OF_RECORD = True
         reader = fp.readlines()
-        if verbose_flag:
+        if _LOGGER.level <= 20:
             reader = tqdm(reader)
         for line in reader:
             if END_OF_RECORD:
@@ -126,7 +126,7 @@ def load_physionet_text(text_filename, verbose_flag=False):
     return reports, document_ids
 
 
-def load_physionet_gs(input_path, verbose_flag):
+def load_physionet_gs(input_path):
     text_filename = os.path.join(input_path, 'id.text')
     ann_filename = os.path.join(input_path, 'id-phi.phrase')
 
@@ -135,8 +135,7 @@ def load_physionet_gs(input_path, verbose_flag):
     # read in text into list of lists
     # each sublist has:
     #   patient id, record id, text
-    reports, document_ids = load_physionet_text(text_filename,
-                                                verbose_flag=verbose_flag)
+    reports, document_ids = load_physionet_text(text_filename)
 
     _LOGGER.info(f'Loading annotations from {ann_filename}')
 
@@ -144,7 +143,7 @@ def load_physionet_gs(input_path, verbose_flag):
     annotations = []
     with open(ann_filename, 'r') as fp:
         reader = fp.readlines()
-        if verbose_flag:
+        if _LOGGER.level <= 20:
             reader = tqdm(reader)
         for line in reader:
             annot = line[0:-1].split(' ')
@@ -168,7 +167,7 @@ def load_physionet_gs(input_path, verbose_flag):
     return reports, df, document_ids
 
 
-def load_physionet_google(input_path, verbose_flag):
+def load_physionet_google(input_path):
     text_filename = os.path.join(input_path, 'id.text')
     ann_filename = os.path.join(input_path,
                                 'I2B2-2014-Relabeled-PhysionetGoldCorpus.csv')
@@ -178,8 +177,7 @@ def load_physionet_google(input_path, verbose_flag):
     # read in text into list of lists
     # each sublist has:
     #   patient id, record id, text
-    reports, document_ids = load_physionet_text(text_filename,
-                                                verbose_flag=verbose_flag)
+    reports, document_ids = load_physionet_text(text_filename)
 
     _LOGGER.info(f'Loading annotations from {ann_filename}')
 
@@ -213,7 +211,6 @@ def load_physionet_google(input_path, verbose_flag):
 
 
 def load_i2b2_2014_format_xml(input_path,
-                              verbose_flag,
                               taglist=i2b2_2014['tag_list'],
                               comments=True):
     files = os.listdir(input_path)
@@ -226,7 +223,7 @@ def load_i2b2_2014_format_xml(input_path,
         return None, None, None
 
     _LOGGER.info(f'Processing {len(files)} files found in {input_path}')
-    if verbose_flag:
+    if _LOGGER.level <= 20:
         files = tqdm(files)
 
     records, annotations, document_ids = [], [], []
@@ -279,7 +276,7 @@ def load_i2b2_2014_format_xml(input_path,
     return records, annotations, document_ids
 
 
-def load_i2b2_2006(input_path, verbose_flag):
+def load_i2b2_2006(input_path):
     # input_path should be the name of a file
     # text_filename = os.path.join(input_path, 'id.text')
     # ann_filename = os.path.join(input_path, 'id-phi.phrase')
@@ -294,7 +291,7 @@ def load_i2b2_2006(input_path, verbose_flag):
     reader = tree.iter('RECORD')
     N = len(tree.findall('RECORD'))
     _LOGGER.info(f'Processing {N} records found in {input_path}')
-    if verbose_flag:
+    if _LOGGER.level <= 20:
         reader = tqdm(tree.iter('RECORD'), total=N)
 
     records, ann, document_ids = [], [], []
@@ -380,14 +377,14 @@ def main():
 
     load_dataset = get_data_type_info(args.data_type)
 
-    reports, annotations, document_ids = load_dataset(input_path, verbose_flag)
+    reports, annotations, document_ids = load_dataset(input_path)
 
     if document_ids is None:
         # no data was loaded
         return
 
     _LOGGER.info(f'Writing out annotation and text files.')
-    if verbose_flag:
+    if _LOGGER.level <= 20:
         document_ids = tqdm(document_ids)
 
     # loop through reports to output files
