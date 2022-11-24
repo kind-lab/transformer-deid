@@ -184,6 +184,66 @@ def split_sequences(tokenizer, texts, labels=None, ids=None):
     else:
         return new_text
 
+def convert_encodings_to_label_list(pred_entities, encoding):
+    """ Converts list of predicted entities and associated Encoding to create list of labels.
+
+        Args:
+            - pred_entities: list of entity types for every token in the text segment, 
+                e.g., ['O', 'O', 'DATE', 'NAME', '0', ...]
+            - encoding: an Encoding object with word_ids, word_to_chars properties
+                see: https://huggingface.co/docs/tokenizers/api/encoding
+
+        Returns:
+            - results: list of [entity_type, start, length] objects
+    """
+    labels = []
+
+    for i, entity in enumerate(pred_entities):
+        if entity != 'O':
+            splice = encoding.word_to_chars(i)
+            labels += [[entity, splice[0], splice[1]-splice[0]]]
+
+    if labels == []:
+        return labels
+
+    # merge labels where the entities are exactly adjacent
+    else:
+        results = [list(labels[0])]
+        res_ind = 0
+        for j in range(1, len(labels)):
+            # if label start of the next label is the end of the previous label
+            # and if the identified entity_type is the same
+            if (labels[j][1] == labels[j-1][1]+labels[j-1][2]) and (labels[j][0] == labels[j-1][0]):
+                # add length to the associated label
+                results[res_ind][2] += labels[j][2]
+            else:
+                # index up and add label
+                res_ind += 1
+                results += [labels[j]]
+        return results
+
+def merge_sequences(labels, id_starts):
+    """ Creates list of list of labels for each document from list of list of labels for each segment 
+        Args: 
+            - labels: list of list of [entity_type, start, length] for each segment (from split_sequences)
+            - id_starts: list of [id, [0, start1, start2]] from split_sequences
+                to consider: remove id? not used, just useful for debugging
+
+        Returns: 
+            - new_labels: list of list of [entity_type, start, length] for each document with proper start indices
+    """
+    new_labels = []
+    ind = 0
+    for id_start in id_starts:
+        labels_one_id = []
+        for start in id_start[1]:
+            labels_one_segment = labels[ind]
+            labels_one_id += [[label[0], label[1]+start, label[2]] for label in labels_one_segment] 
+            ind += 1
+        new_labels += [labels_one_id]
+
+    return new_labels
+
 def expand_id_to_token(token_pred, ignore_value=None):
     # get most frequent label_id for this token
     p_unique, p_counts = np.unique(token_pred, return_counts=True)
