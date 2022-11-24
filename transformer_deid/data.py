@@ -168,9 +168,10 @@ class DeidTask(object):
 
 
 class DeidDataset(torch.utils.data.Dataset):
-    def __init__(self, encodings, labels):
+    def __init__(self, encodings, labels, ids):
         self.encodings = encodings
         self.labels = labels
+        self.ids = ids
 
     def __getitem__(self, idx):
         item = {

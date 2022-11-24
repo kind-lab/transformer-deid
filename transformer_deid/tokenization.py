@@ -94,7 +94,7 @@ def assign_tags_to_single_text(
 
     return token_labels
 
-def split_sequences(tokenizer, texts, labels=None):
+def split_sequences(tokenizer, texts, labels=None, ids=None):
     """
     Split long texts into subtexts of max length.
     If labels is provided, labels will be split in correspondence with texts.
@@ -142,9 +142,14 @@ def split_sequences(tokenizer, texts, labels=None):
     new_text = []
     if labels:
         new_labels = []
+        new_ids = []
 
     logger.info('Splitting text.')
     for i, subseq in tqdm(enumerate(sequence_offsets), total=len(encodings.encodings)):
+        # track the start indices of each set of labels in the document
+        # so that the documents and their labels can be reconstructed
+        if ids:
+            start_inds = []
         for j, start in enumerate(subseq):
             if j + 1 >= len(subseq):
                 stop = len(encodings[i])
@@ -166,9 +171,16 @@ def split_sequences(tokenizer, texts, labels=None):
                     label.shift(-text_start) for label in labels[i] if label.within(text_start, text_stop)
                 ]
                 new_labels.append(subsetted_labels)
-
+            
+            if ids:
+                start_inds += [text_start]
+        
+        if ids:
+            # id and start indices have the form [id, [0, start1, start2, ...]]
+            new_ids += [[ids[i], start_inds]]
+                
     if labels:
-        return new_text, new_labels
+        return new_text, new_labels, new_ids
     else:
         return new_text
 

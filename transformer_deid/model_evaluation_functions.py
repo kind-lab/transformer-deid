@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 def create_deid_dataset(texts, labels, tokenizer,
-                        label2id: dict) -> DeidDataset:
+                        label2id: dict, ids=None) -> DeidDataset:
     """Creates a dataset from set of texts and labels.
 
        Args:
@@ -51,7 +51,7 @@ def create_deid_dataset(texts, labels, tokenizer,
     # (2) identify split points
     # (3) output text as it was originally
     if split_long_sequences:
-        texts, labels = split_sequences(tokenizer, texts, labels)
+        texts, labels, guids = split_sequences(tokenizer, texts, labels, ids=ids)
 
     encodings = tokenizer(texts,
                           is_split_into_words=False,
@@ -69,7 +69,7 @@ def create_deid_dataset(texts, labels, tokenizer,
 
     # prepare a dataset compatible with Trainer module
     encodings.pop("offset_mapping")
-    dataset = DeidDataset(encodings, tags)
+    dataset = DeidDataset(encodings, tags, guids)
 
     return dataset
 
@@ -114,11 +114,11 @@ def load_data(task_name, dataDir, testDir, tokenizerArch: str):
     label2id = deid_task.label2id
 
     train_dataset = create_deid_dataset(train_texts, train_labels, tokenizer,
-                                        label2id)
+                                        label2id, ids=deid_task.train['guid'][:split_idx])
     val_dataset = create_deid_dataset(val_texts, val_labels, tokenizer,
-                                      label2id)
+                                      label2id, ids=deid_task.train['guid'][split_idx:])
     test_dataset = create_deid_dataset(test_texts, test_labels, tokenizer,
-                                       label2id)
+                                       label2id, ids=deid_task.test['guid'])
 
     return deid_task, train_dataset, val_dataset, test_dataset
 
@@ -171,23 +171,20 @@ def decode_labels(labels, lookup_table, true_labels=None):
     return str_labels
 
 
-def eval_model(modelDir: str, deid_task: DeidTask, train_dataset: DeidDataset,
-               val_dataset: DeidDataset, test_dataset: DeidDataset):
-    """Generates all metrics for single a model making inferences on a single dataset.
+def annotate(modelDir: str, deid_task: DeidTask, test_dataset: DeidDataset):
+    """Annotates dataset with PHI labels.
 
        Args:
             modelDir: directory containing config.json, pytorch_model.bin, and training_args.bin
                 e.g., 'i2b2_2014_{base architecture}_Model_{epochs}'
             deid_task: DeidTask, see data.py
-            train, val, and test_dataset: DeidDatasets, see data.py
+            test_dataset: DeidDataset, see data.py
 
        Returns:
-            results_multiclass: dict of operating point statistics (precision, recall, f1) for each datatype
-                datatypes are: age, contact, date, ID, location, name, profession
-            results_binary: dict of operating point statistics (precision, recall, f1) for binary label
-                i.e., PHI or non-PHI labels
+            predicted_label:
+            labels:
     """
-
+    # TODO: remove val_dataset and train_dataset as args; separate annotation and evaluation
     epochs = int(modelDir.split('_')[-1])
     out_dir = '/'.join(modelDir.split('/')[0:-1])
     train_batch_size = 8
@@ -211,25 +208,39 @@ def eval_model(modelDir: str, deid_task: DeidTask, train_dataset: DeidDataset,
         save_strategy='epoch')
 
     trainer = Trainer(model=model,
-                      args=training_args,
-                      train_dataset=train_dataset,
-                      eval_dataset=val_dataset)
+                      args=training_args)
 
     predictions, labels, _ = trainer.predict(test_dataset)
     predicted_label = np.argmax(predictions, axis=2)
 
+    predicted_label = decode_labels(predicted_label, deid_task.labels, true_labels=labels)
+    labels = decode_labels(labels, deid_task.labels)
+
+    return predicted_label, labels
+
+def eval_model(predicted_label, labels):
+    """Generates all metrics for single a model making inferences on a single dataset.
+
+       Args:
+            predicted_label:
+            labels:
+
+       Returns:
+            results_multiclass: dict of operating point statistics (precision, recall, f1) for each datatype
+                datatypes are: age, contact, date, ID, location, name, profession
+            results_binary: dict of operating point statistics (precision, recall, f1) for binary label
+                i.e., PHI or non-PHI labels
+    """
     # load metric to be used -- if none is passed, default to seqeval
     metric_dir = "transformer_deid/token_evaluation.py"
     metric = load_metric(metric_dir)
 
     results_multiclass = compute_metrics(predicted_label,
                                          labels,
-                                         deid_task.labels,
                                          metric=metric)
 
     results_binary = compute_metrics(predicted_label,
                                      labels,
-                                     deid_task.labels,
                                      metric=metric,
                                      binary_evaluation=True)
 
@@ -282,8 +293,9 @@ def eval_model_list(modelDirList: list,
                 deid_task, test_dataset = load_new_test_set(
                     deid_task, testDir, tokenizerArch)
 
-            results_multiclass, results_binary = eval_model(
-                modelDir, deid_task, train_dataset, val_dataset, test_dataset)
+            pred_labels, labels = annotate(modelDir, deid_task, test_dataset)
+
+            results_multiclass, results_binary = eval_model(pred_labels, labels)
 
             if output_metric is None:
                 modelResults += [[results_multiclass, results_binary]]
