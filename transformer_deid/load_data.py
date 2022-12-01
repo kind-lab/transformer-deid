@@ -6,6 +6,7 @@ from label import Label
 from data import DeidDataset
 from tokenization import split_sequences, assign_tags, encode_tags
 
+
 def load_label(filename):
     """
     Loads annotations from a CSV file.
@@ -28,24 +29,21 @@ def load_label(filename):
         # iterate through the CSV and load in the labels
         if label_map is not None:
             labels = [
-                Label(
-                    entity_type=label_map[row[idx[0]].upper()],
-                    start=int(row[idx[1]]),
-                    length=int(row[idx[2]]) - int(row[idx[1]]),
-                    entity=row[idx[3]]
-                ) for row in csvreader
+                Label(entity_type=label_map[row[idx[0]].upper()],
+                      start=int(row[idx[1]]),
+                      length=int(row[idx[2]]) - int(row[idx[1]]),
+                      entity=row[idx[3]]) for row in csvreader
             ]
         else:
             labels = [
-                Label(
-                    entity_type=row[idx[0].upper()],
-                    start=int(row[idx[1]]),
-                    length=int(row[idx[2]]) - int(row[idx[1]]),
-                    entity=row[idx[3]]
-                ) for row in csvreader
+                Label(entity_type=row[idx[0].upper()],
+                      start=int(row[idx[1]]),
+                      length=int(row[idx[2]]) - int(row[idx[1]]),
+                      entity=row[idx[3]]) for row in csvreader
             ]
 
     return labels
+
 
 def load_data(path) -> dict:
     """Creates a dict the dataset."""
@@ -75,12 +73,11 @@ def load_data(path) -> dict:
 
         examples['guid'].append(guid)
         examples['text'].append(text)
-        
 
     return examples
 
-def create_deid_dataset(data_dict, tokenizer,
-                        label2id=None) -> DeidDataset:
+
+def create_deid_dataset(data_dict, tokenizer, label2id=None) -> DeidDataset:
     """Creates a dataset from set of texts and labels.
 
        Args:
@@ -89,8 +86,7 @@ def create_deid_dataset(data_dict, tokenizer,
             tokenizer: HuggingFace tokenizer, e.g., loaded from AutoTokenizer.from_pretrained()
             label2id: dict property of a DeidTask (see data.py)
 
-       Returns:
-            DeidDataset; see class definition in data.py
+       Returns: DeidDataset; see class definition in data.py
     """
 
     # specify dataset arguments
@@ -109,14 +105,13 @@ def create_deid_dataset(data_dict, tokenizer,
 
     texts = split_dict['texts']
     labels = split_dict['labels']
-    guids = split_dict['guids']    
+    guids = split_dict['guids']
 
     encodings = tokenizer(texts,
                           is_split_into_words=False,
                           return_offsets_mapping=True,
                           padding=True,
                           truncation=True)
-
 
     if labels != []:
         # use the offset mappings in train_encodings to assign labels to tokens
@@ -126,7 +121,7 @@ def create_deid_dataset(data_dict, tokenizer,
         #   'input_ids', 'attention_mask', 'offset_mapping'
         # these are used as kwargs to model training later
         tags = encode_tags(tags, encodings, label2id)
-    
+
     else:
         tags = None
 
@@ -136,14 +131,18 @@ def create_deid_dataset(data_dict, tokenizer,
 
     return dataset
 
+
 def get_label_map(transform):
+    """ Gets dictionary of labels to convert from specific labels (may differ across datasets) to more general labels. """
+    # TODO: fix this. open_text is going to kill me.
     # with open_text('transformer_deid', 'label.json') as fp:
     with open('transformer_deid/label.json') as fp:
         label_map = json.load(fp)
-    
+
     # label_membership has different label transforms as keys
     if transform not in label_map:
-        raise KeyError('Unable to find label transform %s in label.json' % transform)
+        raise KeyError('Unable to find label transform %s in label.json' %
+                       transform)
     label_map = label_map[transform]
 
     # label_map has items "harmonized_label": ["label 1", "label 2", ...]
@@ -154,10 +153,13 @@ def get_label_map(transform):
         for label in original_labels
     }
 
+
 def get_labels(labels_each_doc):
     """Gets the list of labels for this data set."""
-    unique_labels = list(set(label.entity_type for labels in labels_each_doc for label in labels))
-    
+    unique_labels = list(
+        set(label.entity_type for labels in labels_each_doc
+            for label in labels))
+
     unique_labels.sort()
 
     # add in the object tag - ensure it is the first element for label2id and id2label dict
@@ -166,4 +168,3 @@ def get_labels(labels_each_doc):
     unique_labels = ['O'] + unique_labels
 
     return unique_labels
-

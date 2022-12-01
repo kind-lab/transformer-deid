@@ -12,19 +12,17 @@ except:
 
 logger = logging.getLogger(__name__)
 
+
 def encode_tags(tags, encodings, tag2id):
-    encoded_labels = [
-        [-100 if tag == 'PAD' else tag2id[tag] for tag in doc] for doc in tags
-    ]
+    encoded_labels = [[-100 if tag == 'PAD' else tag2id[tag] for tag in doc]
+                      for doc in tags]
     return encoded_labels
 
 
-def assign_tags(
-    encodings,
-    labels,
-    pad_token_label='PAD',
-    default_label='O'
-) -> list:
+def assign_tags(encodings,
+                labels,
+                pad_token_label='PAD',
+                default_label='O') -> list:
     """
     Assign labels to tokens in tokenized text.
     
@@ -41,23 +39,18 @@ def assign_tags(
     N = len(encodings.encodings)
     for t in range(N):
         token_labels.append(
-            assign_tags_to_single_text(
-                encodings[t],
-                labels[t],
-                pad_token_label=pad_token_label,
-                default_label=default_label
-            )
-        )
+            assign_tags_to_single_text(encodings[t],
+                                       labels[t],
+                                       pad_token_label=pad_token_label,
+                                       default_label=default_label))
 
     return token_labels
 
 
-def assign_tags_to_single_text(
-    encoding,
-    labels,
-    pad_token_label='PAD',
-    default_label='O'
-):
+def assign_tags_to_single_text(encoding,
+                               labels,
+                               pad_token_label='PAD',
+                               default_label='O'):
     tokens = encoding.ids
     offsets = [o[0] for o in encoding.offsets]
     lengths = [o[1] for o in encoding.offsets]
@@ -99,6 +92,7 @@ def assign_tags_to_single_text(
 
     return token_labels
 
+
 def split_sequences(tokenizer, texts, labels=None, ids=None):
     """
     Split long texts into subtexts of max length.
@@ -112,7 +106,8 @@ def split_sequences(tokenizer, texts, labels=None, ids=None):
     # identify the start/stop offsets of the new text
     sequence_offsets = []
     logger.info('Determining offsets for splitting long segments.')
-    for i, encoded in tqdm(enumerate(encodings.encodings), total=len(encodings.encodings)):
+    for i, encoded in tqdm(enumerate(encodings.encodings),
+                           total=len(encodings.encodings)):
         offsets = [o[0] for o in encoded.offsets]
         token_sw = [False] + [
             encoded.word_ids[i + 1] == encoded.word_ids[i]
@@ -140,16 +135,16 @@ def split_sequences(tokenizer, texts, labels=None, ids=None):
 
             # update start of next sequence to be end of current one
             start = stop
-        
+
         sequence_offsets.append(subseq)
 
-    
     new_text = []
     new_labels = []
     new_ids = []
 
     logger.info('Splitting text.')
-    for i, subseq in tqdm(enumerate(sequence_offsets), total=len(encodings.encodings)):
+    for i, subseq in tqdm(enumerate(sequence_offsets),
+                          total=len(encodings.encodings)):
         # track the start indices of each set of labels in the document
         # so that the documents and their labels can be reconstructed
         if ids:
@@ -158,11 +153,12 @@ def split_sequences(tokenizer, texts, labels=None, ids=None):
             if j + 1 >= len(subseq):
                 stop = len(encodings[i])
             else:
-                stop = subseq[j+1]
-            
+                stop = subseq[j + 1]
+
             text_start = encodings[i].offsets[start][0]
             if stop >= len(encodings[i]):
-                text_stop = encodings[i].offsets[-1][0] + encodings[i].offsets[-1][1]
+                text_stop = encodings[i].offsets[-1][0] + encodings[i].offsets[
+                    -1][1]
             else:
                 text_stop = encodings[i].offsets[stop][0]
 
@@ -172,25 +168,27 @@ def split_sequences(tokenizer, texts, labels=None, ids=None):
             if labels:
                 # subselect labels across examples, shifting them by the text offset
                 subsetted_labels = [
-                    label.shift(-text_start) for label in labels[i] if label.within(text_start, text_stop)
+                    label.shift(-text_start) for label in labels[i]
+                    if label.within(text_start, text_stop)
                 ]
                 new_labels.append(subsetted_labels)
-            
+
             if ids:
                 start_inds += [text_start]
-        
+
         if ids:
             # id and start indices have the form [id, [0, start1, start2, ...]]
             new_ids += [[ids[i], start_inds]]
 
     return {'texts': new_text, 'labels': new_labels, 'guids': new_ids}
 
+
 def convert_tokens_to_label_list(pred_entities, encoding):
     """ Converts list of predicted entities and associated Encoding to create list of labels.
 
         Args:
             - pred_entities: list of entity types for every token in the text segment, 
-                e.g., ['O', 'O', 'DATE', 'NAME', '0', ...]
+                e.g., ['O', 'O', 'DATE', 'NAME', 'O', ...]
             - encoding: an Encoding object with word_ids, word_to_chars properties
                 see: https://huggingface.co/docs/tokenizers/api/encoding
 
@@ -199,10 +197,11 @@ def convert_tokens_to_label_list(pred_entities, encoding):
     """
     labels = []
 
+    # create [entity_type, start, stop] for each PHI element identified
     for i, entity in enumerate(pred_entities):
         if (entity != 'O' and entity != 0):
             splice = encoding.word_to_chars(i)
-            labels += [[entity, splice[0], splice[1]-splice[0]]]
+            labels += [[entity, splice[0], splice[1] - splice[0]]]
 
     if labels == []:
         return labels
@@ -214,7 +213,8 @@ def convert_tokens_to_label_list(pred_entities, encoding):
         for j in range(1, len(labels)):
             # if label start of the next label is the end of the previous label
             # and if the identified entity_type is the same
-            if (labels[j][1] == labels[j-1][1]+labels[j-1][2]) and (labels[j][0] == labels[j-1][0]):
+            if (labels[j][1] == labels[j - 1][1] +
+                    labels[j - 1][2]) and (labels[j][0] == labels[j - 1][0]):
                 # add length to the associated label
                 results[res_ind][2] += labels[j][2]
             else:
@@ -222,6 +222,7 @@ def convert_tokens_to_label_list(pred_entities, encoding):
                 res_ind += 1
                 results += [labels[j]]
         return results
+
 
 def convert_subtokens_to_label_list(pred_entities, encoding):
     """ Converts list of predicted entities FOR SUBTOKENS and associated Encoding to create list of labels.
@@ -238,36 +239,42 @@ def convert_subtokens_to_label_list(pred_entities, encoding):
     # TODO: can the convert_subtokens and convert_tokens functions be merged somehow?
     labels = []
 
+    # create [entity_type, start, stop] for each PHI element identified
     for i, entity in enumerate(pred_entities):
         if (entity != 'O' and entity != 0):
             word = encoding.word_ids[i]
             if word is not None:
                 splice = encoding.word_to_chars(word)
-                labels += [[entity, splice[0], splice[1]-splice[0]]]
+                labels += [[entity, splice[0], splice[1] - splice[0]]]
 
     if labels == []:
         return labels
 
-    
     # merge labels where the entities are exactly adjacent
     else:
         results = [list(labels[0])]
         res_ind = 0
         for j in range(1, len(labels)):
             # TODO: need to use expand_id_to_token to account for subtokens with multiple labels?
+
             # ignore repeats
-            if labels[j] == labels[j-1]:
+            if labels[j] == labels[j - 1]:
                 continue
+
             # if label start of the next label is the end of the previous label
             # and if the identified entity_type is the same
-            elif (labels[j][1] == labels[j-1][1]+labels[j-1][2]) and (labels[j][0] == labels[j-1][0]):
+            elif (labels[j][1] == labels[j - 1][1] +
+                  labels[j - 1][2]) and (labels[j][0] == labels[j - 1][0]):
                 # add length to the associated label
                 results[res_ind][2] += labels[j][2]
+
             else:
                 # index up and add label
                 res_ind += 1
                 results += [labels[j]]
+
         return results
+
 
 def merge_sequences(labels, id_starts):
     """ Creates list of list of labels for each document from list of list of labels for each segment.
@@ -281,16 +288,21 @@ def merge_sequences(labels, id_starts):
             - new_labels: list of list of [entity_type, start, length] for each document with proper start indices
     """
     new_labels = []
+    # index of the current segment
     ind = 0
     for id_start in id_starts:
         labels_one_id = []
+        # for start in list of starting indices
         for start in id_start[1]:
             labels_one_segment = labels[ind]
-            labels_one_id += [[label[0], label[1]+start, label[2]] for label in labels_one_segment] 
+            labels_one_id += [[label[0], label[1] + start, label[2]]
+                              for label in labels_one_segment]
+            # move to next segment
             ind += 1
         new_labels += [labels_one_id]
 
     return new_labels
+
 
 def expand_id_to_token(token_pred, ignore_value=None):
     # get most frequent label_id for this token
@@ -339,15 +351,13 @@ def tokenize_text(tokenizer, text):
     return tokens
 
 
-def generate_token_arrays(
-    text,
-    text_tar,
-    text_pred,
-    tokenizer=None,
-    expand_predictions=True,
-    split_true_entities=True,
-    ignore_value=None
-):
+def generate_token_arrays(text,
+                          text_tar,
+                          text_pred,
+                          tokenizer=None,
+                          expand_predictions=True,
+                          split_true_entities=True,
+                          ignore_value=None):
     """
     Evaluate performance of prediction labels compared to ground truth.
 
@@ -463,14 +473,12 @@ def generate_token_arrays(
 
 
 # methods for assigning labels // tokenizing
-def get_token_labels(
-    self,
-    encoded,
-    labels,
-    pad_token_label_id=-100,
-    default_label='O',
-    label_offset_shift=0
-):
+def get_token_labels(self,
+                     encoded,
+                     labels,
+                     pad_token_label_id=-100,
+                     default_label='O',
+                     label_offset_shift=0):
     """
     label_offset_shift: subtract this off label indices. Helps facilitate slicing
     documents into sub-parts.
@@ -528,15 +536,18 @@ def get_token_labels(
 
     label_ids = [
         self.label_set.label_to_id[l]
-        if l != pad_token_label_id else pad_token_label_id for l in token_labels
+        if l != pad_token_label_id else pad_token_label_id
+        for l in token_labels
     ]
 
     return token_labels, label_ids
 
 
-def tokenize_with_labels(
-    self, tokenizer, example, pad_token_label_id=-100, default_label='O'
-):
+def tokenize_with_labels(self,
+                         tokenizer,
+                         example,
+                         pad_token_label_id=-100,
+                         default_label='O'):
     text = example.text
 
     # tokenize the text, retain offsets, subword locations, and lengths
@@ -557,9 +568,10 @@ def tokenize_with_labels(
         for i in range(len(encoded.word_ids) - 1)
     ]
 
-    token_labels = self.get_token_labels(
-        encoded, example.labels, pad_token_label_id=-100, default_label='O'
-    )
+    token_labels = self.get_token_labels(encoded,
+                                         example.labels,
+                                         pad_token_label_id=-100,
+                                         default_label='O')
 
     return word_tokens, token_labels, token_sw, offsets, lengths
 
@@ -590,9 +602,8 @@ def convert_examples_to_features(
             logger.info("Writing example %d of %d", ex_index, len(examples))
 
         # tokenize the example text
-        encoded = tokenizer._tokenizer.encode(
-            example.text, add_special_tokens=False
-        )
+        encoded = tokenizer._tokenizer.encode(example.text,
+                                              add_special_tokens=False)
         token_sw = [False] + [
             encoded.word_ids[i + 1] == encoded.word_ids[i]
             for i in range(len(encoded.word_ids) - 1)
@@ -631,8 +642,7 @@ def convert_examples_to_features(
                 encoded,
                 example.labels,
                 pad_token_label_id=pad_token_label_id,
-                label_offset_shift=token_offsets[start, 0]
-            )
+                label_offset_shift=token_offsets[start, 0])
 
             features.append(
                 InputFeatures(
@@ -642,8 +652,7 @@ def convert_examples_to_features(
                     label_ids=label_ids,
                     # input_offsets=[o[0] for o in encoded.offsets],
                     # input_lengths=[o[1] - o[0] for o in encoded.offsets]
-                )
-            )
+                ))
             n_obs += 1
 
             # update start of next sequence to be end of current one
