@@ -1,9 +1,14 @@
 from bisect import bisect_left, bisect_right
 import logging
+import numpy as np
 from typing import List, Optional, Union, TextIO
 
 from tqdm import tqdm
-from transformer_deid.label import Label
+# TODO: fix this monstrosity
+try:
+    from transformer_deid.label import Label
+except:
+    from label import Label
 
 logger = logging.getLogger(__name__)
 
@@ -140,9 +145,8 @@ def split_sequences(tokenizer, texts, labels=None, ids=None):
 
     
     new_text = []
-    if labels:
-        new_labels = []
-        new_ids = []
+    new_labels = []
+    new_ids = []
 
     logger.info('Splitting text.')
     for i, subseq in tqdm(enumerate(sequence_offsets), total=len(encodings.encodings)):
@@ -178,13 +182,10 @@ def split_sequences(tokenizer, texts, labels=None, ids=None):
         if ids:
             # id and start indices have the form [id, [0, start1, start2, ...]]
             new_ids += [[ids[i], start_inds]]
-                
-    if labels:
-        return new_text, new_labels, new_ids
-    else:
-        return new_text
 
-def convert_encodings_to_label_list(pred_entities, encoding):
+    return {'texts': new_text, 'labels': new_labels, 'guids': new_ids}
+
+def convert_tokens_to_label_list(pred_entities, encoding):
     """ Converts list of predicted entities and associated Encoding to create list of labels.
 
         Args:
@@ -199,7 +200,7 @@ def convert_encodings_to_label_list(pred_entities, encoding):
     labels = []
 
     for i, entity in enumerate(pred_entities):
-        if entity != 'O':
+        if (entity != 'O' and entity != 0):
             splice = encoding.word_to_chars(i)
             labels += [[entity, splice[0], splice[1]-splice[0]]]
 
@@ -222,8 +223,55 @@ def convert_encodings_to_label_list(pred_entities, encoding):
                 results += [labels[j]]
         return results
 
+def convert_subtokens_to_label_list(pred_entities, encoding):
+    """ Converts list of predicted entities FOR SUBTOKENS and associated Encoding to create list of labels.
+
+        Args:
+            - pred_entities: list of entity types for every token in the text segment, 
+                e.g., [0, 0, 1, 2, 0, ...]
+            - encoding: an Encoding object with word_ids, word_to_chars properties
+                see: https://huggingface.co/docs/tokenizers/api/encoding
+
+        Returns:
+            - results: list of [entity_type, start, length] objects
+    """
+    # TODO: can the convert_subtokens and convert_tokens functions be merged somehow?
+    labels = []
+
+    for i, entity in enumerate(pred_entities):
+        if (entity != 'O' and entity != 0):
+            word = encoding.word_ids[i]
+            if word is not None:
+                splice = encoding.word_to_chars(word)
+                labels += [[entity, splice[0], splice[1]-splice[0]]]
+
+    if labels == []:
+        return labels
+
+    
+    # merge labels where the entities are exactly adjacent
+    else:
+        results = [list(labels[0])]
+        res_ind = 0
+        for j in range(1, len(labels)):
+            # TODO: need to use expand_id_to_token to account for subtokens with multiple labels?
+            # ignore repeats
+            if labels[j] == labels[j-1]:
+                continue
+            # if label start of the next label is the end of the previous label
+            # and if the identified entity_type is the same
+            elif (labels[j][1] == labels[j-1][1]+labels[j-1][2]) and (labels[j][0] == labels[j-1][0]):
+                # add length to the associated label
+                results[res_ind][2] += labels[j][2]
+            else:
+                # index up and add label
+                res_ind += 1
+                results += [labels[j]]
+        return results
+
 def merge_sequences(labels, id_starts):
-    """ Creates list of list of labels for each document from list of list of labels for each segment 
+    """ Creates list of list of labels for each document from list of list of labels for each segment.
+        i.e., the opposite of split_sequences for label lists 
         Args: 
             - labels: list of list of [entity_type, start, length] for each segment (from split_sequences)
             - id_starts: list of [id, [0, start1, start2]] from split_sequences

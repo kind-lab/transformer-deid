@@ -51,7 +51,11 @@ def create_deid_dataset(texts, labels, tokenizer,
     # (2) identify split points
     # (3) output text as it was originally
     if split_long_sequences:
-        texts, labels, guids = split_sequences(tokenizer, texts, labels, ids=ids)
+        split_dict = split_sequences(tokenizer, texts, labels, ids=ids)
+
+    texts = split_dict['texts']
+    labels = split_dict['labels']
+    guids = split_dict['guids']   
 
     encodings = tokenizer(texts,
                           is_split_into_words=False,

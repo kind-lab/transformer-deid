@@ -8,7 +8,11 @@ import json
 
 import torch
 
-from transformer_deid.label import Label
+# TODO: fix this monstrosity
+try:
+    from transformer_deid.label import Label
+except:
+    from label import Label
 
 class DeidTask(object):
     """Utility class for loading and preparing dataset from disk."""
@@ -178,11 +182,12 @@ class DeidDataset(torch.utils.data.Dataset):
             key: torch.tensor(val[idx])
             for key, val in self.encodings.items()
         }
-        item['labels'] = torch.tensor(self.labels[idx])
+        if self.labels:
+            item['labels'] = torch.tensor(self.labels[idx])
         return item
 
     def __len__(self):
-        return len(self.labels)
+        return len(self.encodings["input_ids"])
 
     def get_example(self, i, id2label):
         """Output a tuple for the given index."""
