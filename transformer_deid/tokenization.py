@@ -1,6 +1,7 @@
 from bisect import bisect_left, bisect_right
 import logging
 import numpy as np
+import copy
 from typing import List, Optional, Union, TextIO
 
 from tqdm import tqdm
@@ -182,6 +183,44 @@ def split_sequences(tokenizer, texts, labels=None, ids=None):
 
     return {'texts': new_text, 'labels': new_labels, 'guids': new_ids}
 
+def encodings_to_label_list(pred_entities, encoding):
+    """ Converts list of predicted entities FOR SUBTOKENS and associated Encoding to create list of labels.
+
+        Args:
+            - pred_entities: list of entity types for every token in the text segment, 
+                e.g., [0, 0, 1, 2, 0, ...]
+            - encoding: an Encoding object with word_ids, word_to_chars properties
+                see: https://huggingface.co/docs/tokenizers/api/encoding
+
+        Returns:
+            - results: list of Label objects
+    """
+    labels = []
+    last_word_id = next(x for x in reversed(encoding.word_ids) if x is not None)
+
+    for word_id in range(last_word_id):
+        # all indices corresponding to the same word
+        idxs = [i for i, x in enumerate(encoding.word_ids) if x == word_id]
+
+        # all predicted entities for the same word
+        entities_for_word = [pred_entities[j] for j in idxs]
+        new_entity = expand_id_to_token(entities_for_word, ignore_value='O')
+
+        # only want label if they are not 'O'
+        if (new_entity != 'O' and new_entity != 0):
+            # start and end index for the word of interest
+            splice = encoding.word_to_chars(word_id)
+            # get new token/entity, stripped of all filler special characters
+            token = ''
+            for i in idxs:
+                token += encoding.tokens[i].replace('Ġ', '').replace('Ċ', '').replace('#', '')
+            labels += [Label(new_entity, splice[0], splice[1] - splice[0], token)]
+
+    if labels == []:
+        return labels
+
+    else:
+        return merge_adjacent_labels(labels)
 
 def convert_tokens_to_label_list(pred_entities, encoding):
     """ Converts list of predicted entities and associated Encoding to create list of labels.
@@ -201,28 +240,28 @@ def convert_tokens_to_label_list(pred_entities, encoding):
     for i, entity in enumerate(pred_entities):
         if (entity != 'O' and entity != 0):
             splice = encoding.word_to_chars(i)
-            labels += [[entity, splice[0], splice[1] - splice[0]]]
+            token = encoding.tokens[i][1:] if ('Ġ' in encoding.tokens[i]) else encoding.tokens[i]
+            labels += [Label(entity, splice[0], splice[1] - splice[0], token)]
 
     if labels == []:
         return labels
 
     # merge labels where the entities are exactly adjacent
     else:
-        results = [list(labels[0])]
+        results = [copy.copy(labels[0])]
         res_ind = 0
         for j in range(1, len(labels)):
             # if label start of the next label is the end of the previous label
             # and if the identified entity_type is the same
-            if (labels[j][1] == labels[j - 1][1] +
-                    labels[j - 1][2]) and (labels[j][0] == labels[j - 1][0]):
+            if (labels[j].start == labels[j - 1].start +
+                    labels[j - 1].length) and (labels[j].entity_type == labels[j - 1].entity_type):
                 # add length to the associated label
-                results[res_ind][2] += labels[j][2]
+                results[res_ind].length += labels[j].length
             else:
                 # index up and add label
                 res_ind += 1
                 results += [labels[j]]
         return results
-
 
 def convert_subtokens_to_label_list(pred_entities, encoding):
     """ Converts list of predicted entities FOR SUBTOKENS and associated Encoding to create list of labels.
@@ -234,7 +273,7 @@ def convert_subtokens_to_label_list(pred_entities, encoding):
                 see: https://huggingface.co/docs/tokenizers/api/encoding
 
         Returns:
-            - results: list of [entity_type, start, length] objects
+            - results: list of Label objects
     """
     # TODO: can the convert_subtokens and convert_tokens functions be merged somehow?
     labels = []
@@ -245,35 +284,43 @@ def convert_subtokens_to_label_list(pred_entities, encoding):
             word = encoding.word_ids[i]
             if word is not None:
                 splice = encoding.word_to_chars(word)
-                labels += [[entity, splice[0], splice[1] - splice[0]]]
+                token = encoding.tokens[i].replace('Ġ', '').replace('Ċ', '').replace('#', '')
+                # [1:] if ('Ġ' in encoding.tokens[i]) else encoding.tokens[i]
+                labels += [Label(entity, splice[0], splice[1] - splice[0], token)]
 
     if labels == []:
         return labels
 
     # merge labels where the entities are exactly adjacent
     else:
-        results = [list(labels[0])]
-        res_ind = 0
-        for j in range(1, len(labels)):
-            # TODO: need to use expand_id_to_token to account for subtokens with multiple labels?
+        return merge_adjacent_labels(labels)
 
-            # ignore repeats
-            if labels[j] == labels[j - 1]:
-                continue
+def merge_adjacent_labels(labels):
+    """ Merges adjacent Labels from a list of labels. """
+    results = [copy.copy(labels[0])]
+    res_ind = 0
+    for j in range(1, len(labels)):
+        # if repeated, add remaining portions of entity
+        if (labels[j].entity_type == labels[j - 1].entity_type and labels[j].start == labels[j - 1].start and labels[j].length == labels[j - 1].length):
+            results[res_ind].entity += labels[j].entity
+        
+        if (labels[j].entity_type != labels[j - 1].entity_type and labels[j].start == labels[j - 1].start and labels[j].length == labels[j - 1].length):
+            logging.warn(f'same entity, different label: {labels[j].entity_type} vs {labels[j - 1].entity_type} for {labels[j].entity} vs {labels[j - 1].entity}')
 
-            # if label start of the next label is the end of the previous label
-            # and if the identified entity_type is the same
-            elif (labels[j][1] == labels[j - 1][1] +
-                  labels[j - 1][2]) and (labels[j][0] == labels[j - 1][0]):
-                # add length to the associated label
-                results[res_ind][2] += labels[j][2]
+        # if label start of the next label is the end of the previous label
+        # and if the identified entity_type is the same
+        elif (labels[j].start == labels[j - 1].start +
+                labels[j - 1].length) and (labels[j].entity_type == labels[j - 1].entity_type):
+            # add length to the associated label
+            results[res_ind].length += labels[j].length
+            results[res_ind].entity += labels[j].entity
 
-            else:
-                # index up and add label
-                res_ind += 1
-                results += [labels[j]]
+        else:
+            # index up and add label
+            res_ind += 1
+            results += [labels[j]]
 
-        return results
+    return results
 
 
 def merge_sequences(labels, id_starts):
@@ -295,7 +342,7 @@ def merge_sequences(labels, id_starts):
         # for start in list of starting indices
         for start in id_start[1]:
             labels_one_segment = labels[ind]
-            labels_one_id += [[label[0], label[1] + start, label[2]]
+            labels_one_id += [Label(label.entity_type, label.start+start, label.length, label.entity)
                               for label in labels_one_segment]
             # move to next segment
             ind += 1
@@ -309,7 +356,7 @@ def expand_id_to_token(token_pred, ignore_value=None):
     p_unique, p_counts = np.unique(token_pred, return_counts=True)
 
     if len(p_unique) <= 1:
-        return token_pred
+        return token_pred[0]
 
     # remove our ignore index
     if ignore_value is not None:
@@ -326,7 +373,8 @@ def expand_id_to_token(token_pred, ignore_value=None):
         idx = np.argmax(p_counts)
 
     # re-create the array with only the most frequent label
-    token_pred = np.ones(len(token_pred), dtype=int) * p_unique[idx]
+    # return most frequent label
+    token_pred = p_unique[idx]
     return token_pred
 
 

@@ -6,7 +6,7 @@ from pathlib import Path
 import logging
 from tqdm import tqdm
 from data import DeidDataset
-from tokenization import convert_subtokens_to_label_list, merge_sequences
+from tokenization import convert_subtokens_to_label_list, merge_sequences, encodings_to_label_list
 from transformers import AutoModelForTokenClassification, AutoTokenizer
 from load_data import load_data, create_deid_dataset
 from train import which_transformer_arch
@@ -14,23 +14,17 @@ from train import which_transformer_arch
 logger = logging.getLogger(__name__)
 
 
-def annotate(modelDir: str, test_dataset: DeidDataset):
+def annotate(model, test_dataset: DeidDataset, device):
     """Annotates dataset with PHI labels.
 
        Args:
-            modelDir: directory containing config.json, pytorch_model.bin, and training_args.bin
-                e.g., './transformer_models/{base architecture}_model_{epochs}'
+            model: trained HuggingFace model
             test_dataset: DeidDataset, see data.py
+            device: either cuda or cpu
 
        Returns:
             new_labels: list of lists of [entity type, start, length] objects for each document
     """
-    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-
-    model = AutoModelForTokenClassification.from_pretrained(modelDir).to(
-        device)
-    model.eval()
-
     logger.info(
         f'Running predictions over {len(test_dataset.encodings.encodings)} split sequences from {len(test_dataset.ids)} documents.'
     )
@@ -48,7 +42,7 @@ def annotate(modelDir: str, test_dataset: DeidDataset):
     labels = []
     for i, doc in enumerate(predicted_label):
         labels += [
-            convert_subtokens_to_label_list(doc, test_dataset.encodings[i])
+            encodings_to_label_list(doc, test_dataset.encodings[i])
         ]
 
     new_labels = merge_sequences(labels, test_dataset.ids)
@@ -92,13 +86,18 @@ def main(args):
     modelDir = args.model_path
 
     baseArchitecture = os.path.basename(modelDir).split('_')[-3].lower()
-    __, tokenizerArch, __ = which_transformer_arch(baseArchitecture)
+    _, tokenizerArch, _ = which_transformer_arch(baseArchitecture)
     tokenizer = AutoTokenizer.from_pretrained(tokenizerArch)
 
     data_dict = load_data(Path(train_path))
     test_dataset = create_deid_dataset(data_dict, tokenizer)
 
-    annotations = annotate(modelDir, test_dataset)
+    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+
+    model = AutoModelForTokenClassification.from_pretrained(modelDir).to(device)
+    model.eval()
+
+    annotations = annotate(model, test_dataset, device)
     if out_path is not None:
         # TODO: save annotations in out_path
         raise NotImplementedError('sorry! can\'t save yet!')
