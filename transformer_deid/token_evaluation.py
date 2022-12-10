@@ -5,11 +5,8 @@ import numpy as np
 
 from sklearn.metrics import accuracy_score
 
-import datasets
-
 from sklearn.metrics import accuracy_score
 from sklearn.exceptions import UndefinedMetricWarning
-
 
 import datasets
 
