@@ -6,9 +6,9 @@ from pathlib import Path
 import logging
 from tqdm import tqdm
 from data import DeidDataset
-from tokenization import convert_subtokens_to_label_list, merge_sequences, encodings_to_label_list
+from tokenization import merge_sequences, encodings_to_label_list
 from transformers import AutoModelForTokenClassification, AutoTokenizer
-from load_data import load_data, create_deid_dataset
+from load_data import load_data, create_deid_dataset, save_labels
 from train import which_transformer_arch
 
 logger = logging.getLogger(__name__)
@@ -25,6 +25,9 @@ def annotate(model, test_dataset: DeidDataset, device):
        Returns:
             new_labels: list of lists of [entity type, start, length] objects for each document
     """
+    model = model.to(device)
+    model.eval()
+
     logger.info(
         f'Running predictions over {len(test_dataset.encodings.encodings)} split sequences from {len(test_dataset.ids)} documents.'
     )
@@ -86,21 +89,23 @@ def main(args):
     modelDir = args.model_path
 
     baseArchitecture = os.path.basename(modelDir).split('_')[-3].lower()
-    _, tokenizerArch, _ = which_transformer_arch(baseArchitecture)
-    tokenizer = AutoTokenizer.from_pretrained(tokenizerArch)
+    _, tokenizer, _ = which_transformer_arch(baseArchitecture)
 
     data_dict = load_data(Path(train_path))
     test_dataset = create_deid_dataset(data_dict, tokenizer)
 
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
-    model = AutoModelForTokenClassification.from_pretrained(modelDir).to(device)
-    model.eval()
+    model = AutoModelForTokenClassification.from_pretrained(modelDir)
 
     annotations = annotate(model, test_dataset, device)
+
+    # alternate method to get entity if we make entity optional in Label class:
+    # annotations = [[label.set_entity(text[label.start : label.start + label.length]) for label in labels] for labels, text in zip(annotations, data_dict['text'])]
+
     if out_path is not None:
-        # TODO: save annotations in out_path
-        raise NotImplementedError('sorry! can\'t save yet!')
+        logger.info(f'Saving annotations to {out_path}.')
+        save_labels(annotations, data_dict['guid'], out_path)
 
     else:
         return annotations, test_dataset.ids

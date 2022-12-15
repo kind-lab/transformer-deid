@@ -6,7 +6,7 @@ import logging
 import argparse
 from pathlib import Path
 from transformers import DistilBertForTokenClassification, BertForTokenClassification, RobertaForTokenClassification
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, BertTokenizerFast, DistilBertTokenizerFast, RobertaTokenizerFast
 from transformers import Trainer, TrainingArguments
 from load_data import create_deid_dataset, get_labels, load_data
 
@@ -31,22 +31,22 @@ def which_transformer_arch(baseArchitecture):
     """ Gets architecture-specific parameters for each supported base architecture. """
     if baseArchitecture == 'bert':
         load_model = BertForTokenClassification.from_pretrained
-        tokenizerArch = 'bert-base-cased'
-        baseArchitecture = 'BERT'
+        tokenizer = BertTokenizerFast.from_pretrained('bert-base-cased')
+        baseArchitecture = 'bert-base-cased'
 
     elif baseArchitecture == 'roberta':
         load_model = RobertaForTokenClassification.from_pretrained
-        tokenizerArch = 'roberta-base'
-        baseArchitecture = 'RoBERTa'
+        tokenizer = RobertaTokenizerFast.from_pretrained('roberta-base')
+        baseArchitecture = 'roberta-base'
 
     elif baseArchitecture == 'distilbert':
         load_model = DistilBertForTokenClassification.from_pretrained
-        tokenizerArch = 'distilbert-base-cased'
-        baseArchitecture = 'DistilBERT'
+        tokenizer = DistilBertTokenizerFast.from_pretrained('distilbert-base-cased')
+        baseArchitecture = 'distilbert-base-cased'
     else:
         raise NotImplementedError(f'{baseArchitecture} not a supported model.')
 
-    return load_model, tokenizerArch, baseArchitecture
+    return load_model, tokenizer, baseArchitecture
 
 
 def train(train_data_dict, architecture, epochs):
@@ -65,9 +65,8 @@ def train(train_data_dict, architecture, epochs):
 
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
-    load_model, tokenizerArch, baseArchitecture = which_transformer_arch(
+    load_model, tokenizer, baseArchitecture = which_transformer_arch(
         architecture)
-    tokenizer = AutoTokenizer.from_pretrained(tokenizerArch)
 
     unique_labels = get_labels(train_data_dict['ann'])
     label2id = {tag: id for id, tag in enumerate(unique_labels)}
@@ -75,7 +74,7 @@ def train(train_data_dict, architecture, epochs):
 
     train_dataset = create_deid_dataset(train_data_dict, tokenizer, label2id)
 
-    model = load_model(tokenizerArch,
+    model = load_model(baseArchitecture,
                        num_labels=len(unique_labels),
                        label2id=label2id,
                        id2label=id2label).to(device)
