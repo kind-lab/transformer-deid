@@ -235,36 +235,26 @@ def encodings_to_label_list(pred_entities, encoding):
 
 def merge_adjacent_labels(labels):
     """ Merges adjacent Labels from a list of labels. """
+    # start with the first label
     results = [copy.copy(labels[0])]
+    # keep track of the index of the last label
     res_ind = 0
+    
     for j in range(1, len(labels)):
-        # if repeated, add remaining portions of entity
-        if (labels[j].entity_type == labels[j - 1].entity_type and labels[j].start == labels[j - 1].start and labels[j].length == labels[j - 1].length):
-            results[res_ind].entity += labels[j].entity
-        
-        if (labels[j].entity_type != labels[j - 1].entity_type and labels[j].start == labels[j - 1].start and labels[j].length == labels[j - 1].length):
-            logging.warn(f'same entity, different label: {labels[j].entity_type} vs {labels[j - 1].entity_type} for {labels[j].entity} vs {labels[j - 1].entity}')
+        prev = labels[j - 1]
+        curr = labels[j]
 
         # if label start of the next label is the end of the previous label
         # and if the identified entity_type is the same
-        elif (labels[j].start == labels[j - 1].start +
-                labels[j - 1].length) and (labels[j].entity_type == labels[j - 1].entity_type):
-            # add length to the associated label
-            results[res_ind].length += labels[j].length
-            if results[res_ind].entity is not None:
-                results[res_ind].entity += labels[j].entity
-        
-        elif (labels[j].start == labels[j - 1].start +
-                labels[j - 1].length + 1) and (labels[j].entity_type == labels[j - 1].entity_type):
-            # add length to the associated label
-            results[res_ind].length += labels[j].length + 1
-            if results[res_ind].entity is not None:
-                results[res_ind].entity += ' ' + labels[j].entity
+        if (curr.start == prev.start + prev.length) and (curr.entity_type == prev.entity_type):
+            # add length and entity to the associated label
+            results[res_ind].length += curr.length
+            results[res_ind].entity += curr.entity
 
         else:
             # index up and add label
             res_ind += 1
-            results += [labels[j]]
+            results += [curr]
 
     return results
 
