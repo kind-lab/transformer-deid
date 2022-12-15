@@ -19,6 +19,7 @@ def encode_tags(tags, encodings, tag2id):
                       for doc in tags]
     return encoded_labels
 
+
 def decode_tags(tags, encodings, id2tag, padding='PAD'):
     encoded_labels = [[padding if id == -100 else id2tag[id] for id in doc]
                       for doc in tags]
@@ -188,6 +189,7 @@ def split_sequences(tokenizer, texts, labels=None, ids=None):
 
     return {'texts': new_text, 'labels': new_labels, 'guids': new_ids}
 
+
 def encodings_to_label_list(pred_entities, encoding):
     """ Converts list of predicted entities FOR SUBTOKENS and associated Encoding to create list of labels.
 
@@ -202,7 +204,8 @@ def encodings_to_label_list(pred_entities, encoding):
     """
     labels = []
 
-    last_word_id = next(x for x in reversed(encoding.word_ids) if x is not None)
+    last_word_id = next(x for x in reversed(encoding.word_ids)
+                        if x is not None)
 
     for word_id in range(last_word_id):
         # all indices corresponding to the same word
@@ -216,16 +219,15 @@ def encodings_to_label_list(pred_entities, encoding):
             # start and end index for the word of interest
             splice = encoding.word_to_chars(word_id)
 
-            # get full word?
-            # there is no native way to remove special characters from encoding.tokens
-            # since here I don't have access to the tokenizer characteristics 
-            # other option is to make entity optional in Label class and add back entity in main or omit entirely?           
+            # get full word
             token = ''
             for i in idxs:
-                diff = len(encoding.tokens[i]) - (encoding.offsets[i][1]-encoding.offsets[i][0])
+                diff = len(encoding.tokens[i]) - (encoding.offsets[i][1] - encoding.offsets[i][0])
                 token += encoding.tokens[i][diff:]
 
-            labels += [Label(new_entity, splice[0], splice[1] - splice[0], token)]
+            labels += [
+                Label(new_entity, splice[0], splice[1] - splice[0], token)
+            ]
 
     if labels == []:
         return labels
@@ -233,20 +235,22 @@ def encodings_to_label_list(pred_entities, encoding):
     else:
         return merge_adjacent_labels(labels)
 
+
 def merge_adjacent_labels(labels):
     """ Merges adjacent Labels from a list of labels. """
     # start with the first label
     results = [copy.copy(labels[0])]
     # keep track of the index of the last label
     res_ind = 0
-    
+
     for j in range(1, len(labels)):
         prev = labels[j - 1]
         curr = labels[j]
 
         # if label start of the next label is the end of the previous label
         # and if the identified entity_type is the same
-        if (curr.start == prev.start + prev.length) and (curr.entity_type == prev.entity_type):
+        if (curr.start == prev.start + prev.length) and (curr.entity_type
+                                                         == prev.entity_type):
             # add length and entity to the associated label
             results[res_ind].length += curr.length
             results[res_ind].entity += curr.entity
@@ -278,8 +282,10 @@ def merge_sequences(labels, id_starts):
         # for start in list of starting indices
         for start in id_start[1]:
             labels_one_segment = labels[ind]
-            labels_one_id += [Label(label.entity_type, label.start+start, label.length, label.entity)
-                              for label in labels_one_segment]
+            labels_one_id += [
+                Label(label.entity_type, label.start + start, label.length,
+                      label.entity) for label in labels_one_segment
+            ]
             # move to next segment
             ind += 1
         new_labels += [labels_one_id]

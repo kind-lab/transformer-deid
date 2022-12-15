@@ -169,13 +169,17 @@ def get_labels(labels_each_doc):
 
     return unique_labels
 
+
 def save_labels(labels, ids, out_path):
     if not os.path.exists(out_path):
         os.mkdir(out_path)
     header = ['start', 'stop', 'entity', 'entity_type']
 
     for doc, id in tqdm(zip(labels, ids), total=len(ids)):
-        label_list = [[label.start, label.start+label.length, label.entity, label.entity_type] for label in doc]
+        label_list = [[
+            label.start, label.start + label.length, label.entity,
+            label.entity_type
+        ] for label in doc]
         with open(f'{out_path}/{id}.gs', 'w') as f:
             writer = csv.writer(f)
             writer.writerow(header)

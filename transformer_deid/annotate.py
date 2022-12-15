@@ -44,9 +44,7 @@ def annotate(model, test_dataset: DeidDataset, device):
 
     labels = []
     for i, doc in enumerate(predicted_label):
-        labels += [
-            encodings_to_label_list(doc, test_dataset.encodings[i])
-        ]
+        labels += [encodings_to_label_list(doc, test_dataset.encodings[i])]
 
     new_labels = merge_sequences(labels, test_dataset.ids)
 
