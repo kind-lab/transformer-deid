@@ -82,10 +82,9 @@ def create_deid_dataset(data_dict, tokenizer, label2id=None) -> DeidDataset:
     """Creates a dataset from set of texts and labels.
 
        Args:
-            texts: dict of text data, from, e.g., DeidTask.train['text']
-            labels: dict of annotations, from, e.g., DeidTask.train['ann']
+            data_dict: dict of text data with 'text', 'ann', and 'guid' keys; e.g., from load_data()
             tokenizer: HuggingFace tokenizer, e.g., loaded from AutoTokenizer.from_pretrained()
-            label2id: dict property of a DeidTask (see data.py)
+            label2id: dict to convert label (e.g., 'O,' 'DATE') to id (e.g., 0, 1)
 
        Returns: DeidDataset; see class definition in data.py
     """

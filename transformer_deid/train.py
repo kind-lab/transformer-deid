@@ -6,7 +6,7 @@ import logging
 import argparse
 from pathlib import Path
 from transformers import DistilBertForTokenClassification, BertForTokenClassification, RobertaForTokenClassification
-from transformers import AutoTokenizer, BertTokenizerFast, DistilBertTokenizerFast, RobertaTokenizerFast
+from transformers import BertTokenizerFast, DistilBertTokenizerFast, RobertaTokenizerFast
 from transformers import Trainer, TrainingArguments
 from load_data import create_deid_dataset, get_labels, load_data
 
@@ -49,7 +49,7 @@ def which_transformer_arch(baseArchitecture):
     return load_model, tokenizer, baseArchitecture
 
 
-def train(train_data_dict, architecture, epochs):
+def train(train_data_dict, architecture, epochs, out_dir):
     """ Trains a transformer-based deidentification model over {epochs} using {architecture}. 
 
         Args:
@@ -57,10 +57,10 @@ def train(train_data_dict, architecture, epochs):
             - architecture: transformer model to use 
                 e.g., bert, roberta, or distilbert
             - epochs: int, number of epochs to use
+            - out_dir: directory to which to save the model; only passed because it's mandatory for TrainingArguments()
         
         Returns: trained HuggingFace Trainer object
     """
-    out_dir = '../test_save/'  # this is just to pass to TrainingArguments. With save_strategy='no', nothing is saved here
     seed_everything(42)
 
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
@@ -147,7 +147,7 @@ def main(args):
     # read in data from training directory
     data_dict = load_data(Path(train_path))
 
-    trainer = train(data_dict, model, epochs)
+    trainer = train(data_dict, model, epochs, out_path)
 
     save_location = f'{out_path}/{model}_model_{epochs}'
     trainer.save_model(save_location)
