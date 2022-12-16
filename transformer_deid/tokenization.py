@@ -190,19 +190,37 @@ def split_sequences(tokenizer, texts, labels=None, ids=None):
     return {'texts': new_text, 'labels': new_labels, 'guids': new_ids}
 
 
-def encodings_to_label_list(pred_entities, encoding):
+def encodings_to_label_list(pred_entities, encoding, id2label=None):
     """ Converts list of predicted entities FOR SUBTOKENS and associated Encoding to create list of labels.
 
         Args:
             - pred_entities: list of entity types for every token in the text segment, 
-                e.g., [0, 0, 1, 2, 0, ...] or [O, O, AGE, DATE, O, ...]
+                e.g., [O, O, AGE, DATE, O, ...]
             - encoding: an Encoding object with word_ids, word_to_chars properties
                 see: https://huggingface.co/docs/tokenizers/api/encoding
+            - id2label: optional dict to convert integer ids to string entity types
 
         Returns:
             - results: list of Label objects
     """
     labels = []
+
+    if id2label is None:
+        if type(pred_entities[0]) is np.int64:
+            logger.error('Passed predictions are type int not str and id2label is not passed as an argument.')
+        elif type(pred_entities[0]) is str:
+            pass
+        else:
+            logger.error(f'Passed predictions are of type {type(pred_entities[0])}, which is unsupported.')
+
+    else:
+        if type(pred_entities[0]) is np.int64:
+            logger.warning('Using id2label to convert integer predictions to entity type.')
+            pred_entities = [id2label[id] for id in pred_entities]
+        elif type(pred_entities[0]) is str:
+            logger.warning('Ignoring passed argument id2label.')
+        else:
+            logger.error(f'Passed predictions are of type {type(pred_entities[0])}, which is unsupported.')
 
     last_word_id = next(x for x in reversed(encoding.word_ids)
                         if x is not None)
@@ -215,7 +233,7 @@ def encodings_to_label_list(pred_entities, encoding):
         new_entity = pred_entities[idxs[0]]
 
         # only want label if they are not 'O'
-        if (new_entity != 'O' and new_entity != 0 and new_entity != 'PAD'):
+        if (new_entity != 'O' and new_entity != 'PAD'):
             # start and end index for the word of interest
             splice = encoding.word_to_chars(word_id)
 
@@ -240,8 +258,6 @@ def merge_adjacent_labels(labels):
     """ Merges adjacent Labels from a list of labels. """
     # start with the first label
     results = [copy.copy(labels[0])]
-    # keep track of the index of the last label
-    res_ind = 0
 
     for j in range(1, len(labels)):
         prev = labels[j - 1]
@@ -252,12 +268,11 @@ def merge_adjacent_labels(labels):
         if (curr.start == prev.start + prev.length) and (curr.entity_type
                                                          == prev.entity_type):
             # add length and entity to the associated label
-            results[res_ind].length += curr.length
-            results[res_ind].entity += curr.entity
+            results[-1].length += curr.length
+            results[-1].entity += curr.entity
 
         else:
-            # index up and add label
-            res_ind += 1
+            # add label
             results += [curr]
 
     return results

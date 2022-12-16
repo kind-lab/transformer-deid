@@ -42,9 +42,7 @@ def annotate(model, test_dataset: DeidDataset, device):
     predicted_label = [[id2label[token] for token in doc]
                        for doc in predicted_label]
 
-    labels = []
-    for i, doc in enumerate(predicted_label):
-        labels += [encodings_to_label_list(doc, test_dataset.encodings[i])]
+    labels = [encodings_to_label_list(doc, test_dataset.encodings[i], id2label=id2label) for i, doc in enumerate(predicted_label)]
 
     new_labels = merge_sequences(labels, test_dataset.ids)
 
@@ -97,9 +95,6 @@ def main(args):
     model = AutoModelForTokenClassification.from_pretrained(modelDir)
 
     annotations = annotate(model, test_dataset, device)
-
-    # alternate method to get entity if we make entity optional in Label class:
-    # annotations = [[label.set_entity(text[label.start : label.start + label.length]) for label in labels] for labels, text in zip(annotations, data_dict['text'])]
 
     if out_path is not None:
         logger.info(f'Saving annotations to {out_path}.')
