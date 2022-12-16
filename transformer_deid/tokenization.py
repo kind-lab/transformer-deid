@@ -20,6 +20,12 @@ def encode_tags(tags, encodings, tag2id):
     return encoded_labels
 
 
+def decode_tags(tags, encodings, id2tag, padding='PAD'):
+    encoded_labels = [[padding if id == -100 else id2tag[id] for id in doc]
+                      for doc in tags]
+    return encoded_labels
+
+
 def assign_tags(encodings,
                 labels,
                 pad_token_label='PAD',
@@ -183,38 +189,63 @@ def split_sequences(tokenizer, texts, labels=None, ids=None):
 
     return {'texts': new_text, 'labels': new_labels, 'guids': new_ids}
 
-def encodings_to_label_list(pred_entities, encoding):
+
+def encodings_to_label_list(pred_entities, encoding, id2label=None):
     """ Converts list of predicted entities FOR SUBTOKENS and associated Encoding to create list of labels.
 
         Args:
             - pred_entities: list of entity types for every token in the text segment, 
-                e.g., [0, 0, 1, 2, 0, ...]
+                e.g., [O, O, AGE, DATE, O, ...]
             - encoding: an Encoding object with word_ids, word_to_chars properties
                 see: https://huggingface.co/docs/tokenizers/api/encoding
+            - id2label: optional dict to convert integer ids to string entity types
 
         Returns:
             - results: list of Label objects
     """
     labels = []
-    last_word_id = next(x for x in reversed(encoding.word_ids) if x is not None)
+
+    if id2label is None:
+        if type(pred_entities[0]) is np.int64:
+            logger.error('Passed predictions are type int not str and id2label is not passed as an argument.')
+        elif type(pred_entities[0]) is str:
+            pass
+        else:
+            logger.error(f'Passed predictions are of type {type(pred_entities[0])}, which is unsupported.')
+
+    else:
+        if type(pred_entities[0]) is np.int64:
+            logger.warning('Using id2label to convert integer predictions to entity type.')
+            pred_entities = [id2label[id] for id in pred_entities]
+        elif type(pred_entities[0]) is str:
+            logger.warning('Ignoring passed argument id2label.')
+        else:
+            logger.error(f'Passed predictions are of type {type(pred_entities[0])}, which is unsupported.')
+
+    last_word_id = next(x for x in reversed(encoding.word_ids)
+                        if x is not None)
 
     for word_id in range(last_word_id):
         # all indices corresponding to the same word
         idxs = [i for i, x in enumerate(encoding.word_ids) if x == word_id]
 
-        # all predicted entities for the same word
-        entities_for_word = [pred_entities[j] for j in idxs]
-        new_entity = expand_id_to_token(entities_for_word, ignore_value='O')
+        # get first entity only
+        new_entity = pred_entities[idxs[0]]
 
         # only want label if they are not 'O'
-        if (new_entity != 'O' and new_entity != 0):
+        if (new_entity != 'O' and new_entity != 'PAD'):
             # start and end index for the word of interest
             splice = encoding.word_to_chars(word_id)
-            # get new token/entity, stripped of all filler special characters
+
+            # get full word
             token = ''
             for i in idxs:
-                token += encoding.tokens[i].replace('Ġ', '').replace('Ċ', '').replace('#', '')
-            labels += [Label(new_entity, splice[0], splice[1] - splice[0], token)]
+                diff = len(encoding.tokens[i]) - (encoding.offsets[i][1] - encoding.offsets[i][0])
+                token += encoding.tokens[i][diff:]
+
+            labels += [
+                Label(new_entity, splice[0], splice[1] - splice[0], token)
+            ]
 
     if labels == []:
         return labels
@@ -222,103 +253,27 @@ def encodings_to_label_list(pred_entities, encoding):
     else:
         return merge_adjacent_labels(labels)
 
-def convert_tokens_to_label_list(pred_entities, encoding):
-    """ Converts list of predicted entities and associated Encoding to create list of labels.
-
-        Args:
-            - pred_entities: list of entity types for every token in the text segment, 
-                e.g., ['O', 'O', 'DATE', 'NAME', 'O', ...]
-            - encoding: an Encoding object with word_ids, word_to_chars properties
-                see: https://huggingface.co/docs/tokenizers/api/encoding
-
-        Returns:
-            - results: list of [entity_type, start, length] objects
-    """
-    labels = []
-
-    # create [entity_type, start, stop] for each PHI element identified
-    for i, entity in enumerate(pred_entities):
-        if (entity != 'O' and entity != 0):
-            splice = encoding.word_to_chars(i)
-            token = encoding.tokens[i][1:] if ('Ġ' in encoding.tokens[i]) else encoding.tokens[i]
-            labels += [Label(entity, splice[0], splice[1] - splice[0], token)]
-
-    if labels == []:
-        return labels
-
-    # merge labels where the entities are exactly adjacent
-    else:
-        results = [copy.copy(labels[0])]
-        res_ind = 0
-        for j in range(1, len(labels)):
-            # if label start of the next label is the end of the previous label
-            # and if the identified entity_type is the same
-            if (labels[j].start == labels[j - 1].start +
-                    labels[j - 1].length) and (labels[j].entity_type == labels[j - 1].entity_type):
-                # add length to the associated label
-                results[res_ind].length += labels[j].length
-            else:
-                # index up and add label
-                res_ind += 1
-                results += [labels[j]]
-        return results
-
-def convert_subtokens_to_label_list(pred_entities, encoding):
-    """ Converts list of predicted entities FOR SUBTOKENS and associated Encoding to create list of labels.
-
-        Args:
-            - pred_entities: list of entity types for every token in the text segment, 
-                e.g., [0, 0, 1, 2, 0, ...]
-            - encoding: an Encoding object with word_ids, word_to_chars properties
-                see: https://huggingface.co/docs/tokenizers/api/encoding
-
-        Returns:
-            - results: list of Label objects
-    """
-    # TODO: can the convert_subtokens and convert_tokens functions be merged somehow?
-    labels = []
-
-    # create [entity_type, start, stop] for each PHI element identified
-    for i, entity in enumerate(pred_entities):
-        if (entity != 'O' and entity != 0):
-            word = encoding.word_ids[i]
-            if word is not None:
-                splice = encoding.word_to_chars(word)
-                token = encoding.tokens[i].replace('Ġ', '').replace('Ċ', '').replace('#', '')
-                # [1:] if ('Ġ' in encoding.tokens[i]) else encoding.tokens[i]
-                labels += [Label(entity, splice[0], splice[1] - splice[0], token)]
-
-    if labels == []:
-        return labels
-
-    # merge labels where the entities are exactly adjacent
-    else:
-        return merge_adjacent_labels(labels)
 
 def merge_adjacent_labels(labels):
     """ Merges adjacent Labels from a list of labels. """
+    # start with the first label
     results = [copy.copy(labels[0])]
-    res_ind = 0
+
     for j in range(1, len(labels)):
-        # if repeated, add remaining portions of entity
-        if (labels[j].entity_type == labels[j - 1].entity_type and labels[j].start == labels[j - 1].start and labels[j].length == labels[j - 1].length):
-            results[res_ind].entity += labels[j].entity
-        
-        if (labels[j].entity_type != labels[j - 1].entity_type and labels[j].start == labels[j - 1].start and labels[j].length == labels[j - 1].length):
-            logging.warn(f'same entity, different label: {labels[j].entity_type} vs {labels[j - 1].entity_type} for {labels[j].entity} vs {labels[j - 1].entity}')
+        prev = labels[j - 1]
+        curr = labels[j]
 
         # if label start of the next label is the end of the previous label
         # and if the identified entity_type is the same
-        elif (labels[j].start == labels[j - 1].start +
-                labels[j - 1].length) and (labels[j].entity_type == labels[j - 1].entity_type):
-            # add length to the associated label
-            results[res_ind].length += labels[j].length
-            results[res_ind].entity += labels[j].entity
+        if (curr.start == prev.start + prev.length) and (curr.entity_type
+                                                         == prev.entity_type):
+            # add length and entity to the associated label
+            results[-1].length += curr.length
+            results[-1].entity += curr.entity
 
         else:
-            # index up and add label
-            res_ind += 1
-            results += [labels[j]]
+            # add label
+            results += [curr]
 
     return results
 
@@ -342,8 +297,10 @@ def merge_sequences(labels, id_starts):
         # for start in list of starting indices
         for start in id_start[1]:
             labels_one_segment = labels[ind]
-            labels_one_id += [Label(label.entity_type, label.start+start, label.length, label.entity)
-                              for label in labels_one_segment]
+            labels_one_id += [
+                Label(label.entity_type, label.start + start, label.length,
+                      label.entity) for label in labels_one_segment
+            ]
             # move to next segment
             ind += 1
         new_labels += [labels_one_id]

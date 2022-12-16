@@ -1,28 +1,22 @@
 import argparse
 import math
-import pprint
 
 from datetime import datetime
 import logging
 from pathlib import Path
 import os
-import json
 from tqdm import tqdm
 
 import numpy as np
 
-from transformers import BertTokenizerFast
 from transformers import AutoModelForTokenClassification
 from transformers import Trainer, TrainingArguments
 from datasets import load_metric
 
 # local packages
-from transformer_deid.data import DeidDataset, DeidTask
 from transformer_deid.evaluation import compute_metrics
-from transformer_deid.tokenization import assign_tags, encode_tags, split_sequences
-from transformer_deid.utils import convert_dict_to_native_types
 
-from train_deid_transformer import which_transformer_arch
+from transformer_deid.train import which_transformer_arch
 from transformer_deid.model_evaluation_functions import load_data
 
 logging.basicConfig(
@@ -168,13 +162,13 @@ def main():
     epochs = int(args.model.split('results')[1])
     task_name = args.task_name
 
-    _, tokenizerArch, _ = which_transformer_arch(arch)
+    _, tokenizer, _ = which_transformer_arch(arch)
 
     dataDir = f'{task_name}'
     testDir = f'{task_name}/test'
 
     deid_task, train_dataset, val_dataset, test_dataset = load_data(
-        task_name, dataDir, testDir, tokenizerArch
+        task_name, dataDir, testDir, tokenizer
     )
 
     train_batch_size = 8

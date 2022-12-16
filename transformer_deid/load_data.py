@@ -1,5 +1,6 @@
 import csv
 import os
+from tqdm import tqdm
 from importlib.resources import open_text
 import json
 from label import Label
@@ -81,10 +82,9 @@ def create_deid_dataset(data_dict, tokenizer, label2id=None) -> DeidDataset:
     """Creates a dataset from set of texts and labels.
 
        Args:
-            texts: dict of text data, from, e.g., DeidTask.train['text']
-            labels: dict of annotations, from, e.g., DeidTask.train['ann']
+            data_dict: dict of text data with 'text', 'ann', and 'guid' keys; e.g., from load_data()
             tokenizer: HuggingFace tokenizer, e.g., loaded from AutoTokenizer.from_pretrained()
-            label2id: dict property of a DeidTask (see data.py)
+            label2id: dict to convert label (e.g., 'O,' 'DATE') to id (e.g., 0, 1)
 
        Returns: DeidDataset; see class definition in data.py
     """
@@ -168,3 +168,19 @@ def get_labels(labels_each_doc):
     unique_labels = ['O'] + unique_labels
 
     return unique_labels
+
+
+def save_labels(labels, ids, out_path):
+    if not os.path.exists(out_path):
+        os.mkdir(out_path)
+    header = ['start', 'stop', 'entity', 'entity_type']
+
+    for doc, id in tqdm(zip(labels, ids), total=len(ids)):
+        label_list = [[
+            label.start, label.start + label.length, label.entity,
+            label.entity_type
+        ] for label in doc]
+        with open(f'{out_path}/{id}.gs', 'w') as f:
+            writer = csv.writer(f)
+            writer.writerow(header)
+            writer.writerows(label_list)
