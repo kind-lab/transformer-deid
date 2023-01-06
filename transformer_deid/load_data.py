@@ -3,9 +3,9 @@ import os
 from tqdm import tqdm
 from importlib.resources import open_text
 import json
-from label import Label
-from data import DeidDataset
-from tokenization import split_sequences, assign_tags, encode_tags
+from transformer_deid.label import Label
+from transformer_deid.data import DeidDataset
+from transformer_deid.tokenization import split_sequences, assign_tags, encode_tags
 
 
 def load_label(filename):

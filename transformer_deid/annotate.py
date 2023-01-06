@@ -5,11 +5,11 @@ import numpy as np
 from pathlib import Path
 import logging
 from tqdm import tqdm
-from data import DeidDataset
-from tokenization import merge_sequences, encodings_to_label_list
+from transformer_deid.data import DeidDataset
+from transformer_deid.tokenization import merge_sequences, encodings_to_label_list
 from transformers import AutoModelForTokenClassification, AutoTokenizer
-from load_data import load_data, create_deid_dataset, save_labels
-from train import which_transformer_arch
+from transformer_deid.load_data import load_data, create_deid_dataset, save_labels
+from transformer_deid.train import which_transformer_arch
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +91,7 @@ def main(args):
     test_dataset = create_deid_dataset(data_dict, tokenizer)
 
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+    logger.warning(f'Running using {device}.')
 
     model = AutoModelForTokenClassification.from_pretrained(modelDir)
 
