@@ -5,6 +5,7 @@ import numpy as np
 from pathlib import Path
 import logging
 from tqdm import tqdm
+from huggingface_hub import login
 from transformer_deid.data import DeidDataset
 from transformer_deid.tokenization import merge_sequences, encodings_to_label_list
 from transformers import AutoModelForTokenClassification, AutoTokenizer
@@ -92,6 +93,8 @@ def main(args):
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     logger.warning(f'Running using {device}.')
 
+    # use token from HuggingFace -- if we make the models public, will be unnecessary
+    login()
     model = AutoModelForTokenClassification.from_pretrained(modelDir)
 
     annotations = annotate(model, test_dataset, device)
