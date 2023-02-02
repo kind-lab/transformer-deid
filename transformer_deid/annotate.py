@@ -83,8 +83,7 @@ def main(args):
     train_path = args.test_path
     out_path = args.output_path
     modelDir = args.model_path
-
-    baseArchitecture = os.path.basename(modelDir).split('_')[-3].lower()
+    baseArchitecture = os.path.basename(modelDir).split('-')[0].lower()
     _, tokenizer, _ = which_transformer_arch(baseArchitecture)
 
     data_dict = load_data(Path(train_path))
