@@ -94,7 +94,7 @@ def main(args):
     logger.warning(f'Running using {device}.')
 
     # use token from HuggingFace -- if we make the models public, will be unnecessary
-    login()
+    # login()
     model = AutoModelForTokenClassification.from_pretrained(modelDir)
 
     annotations = annotate(model, test_dataset, device)
