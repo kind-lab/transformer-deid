@@ -8,4 +8,4 @@ Models
 - DistilBERT
 - RoBERTa
 
-[Training runbook](./training_notebook_runbook.md)
+For training and evaluation examples, see [Pyclipse](https://github.com/kind-lab/pyclipse)

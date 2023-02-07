@@ -5,11 +5,12 @@ import numpy as np
 from pathlib import Path
 import logging
 from tqdm import tqdm
-from data import DeidDataset
-from tokenization import merge_sequences, encodings_to_label_list
+from huggingface_hub import login
+from transformer_deid.data import DeidDataset
+from transformer_deid.tokenization import merge_sequences, encodings_to_label_list
 from transformers import AutoModelForTokenClassification, AutoTokenizer
-from load_data import load_data, create_deid_dataset, save_labels
-from train import which_transformer_arch
+from transformer_deid.load_data import load_data, create_deid_dataset, save_labels
+from transformer_deid.train import which_transformer_arch
 
 logger = logging.getLogger(__name__)
 
@@ -83,14 +84,14 @@ def main(args):
     train_path = args.test_path
     out_path = args.output_path
     modelDir = args.model_path
-
-    baseArchitecture = os.path.basename(modelDir).split('_')[-3].lower()
+    baseArchitecture = os.path.basename(modelDir).split('-')[0].lower()
     _, tokenizer, _ = which_transformer_arch(baseArchitecture)
 
     data_dict = load_data(Path(train_path))
     test_dataset = create_deid_dataset(data_dict, tokenizer)
 
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+    logger.info(f'Running using {device}.')
 
     model = AutoModelForTokenClassification.from_pretrained(modelDir)
 

@@ -3,7 +3,7 @@ import torch
 import numpy as np
 from tqdm import tqdm
 from transformers import DistilBertTokenizerFast
-from tokenization import split_sequences
+from transformer_deid.tokenization import split_sequences
 
 logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',

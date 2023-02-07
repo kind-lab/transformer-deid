@@ -8,7 +8,7 @@ from pathlib import Path
 from transformers import DistilBertForTokenClassification, BertForTokenClassification, RobertaForTokenClassification
 from transformers import BertTokenizerFast, DistilBertTokenizerFast, RobertaTokenizerFast
 from transformers import Trainer, TrainingArguments
-from load_data import create_deid_dataset, get_labels, load_data
+from transformer_deid.load_data import create_deid_dataset, get_labels, load_data
 
 logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
@@ -64,6 +64,7 @@ def train(train_data_dict, architecture, epochs, out_dir):
     seed_everything(42)
 
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+    logger.info(f'Running using {device}.')
 
     load_model, tokenizer, baseArchitecture = which_transformer_arch(
         architecture)
