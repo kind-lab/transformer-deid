@@ -91,10 +91,8 @@ def main(args):
     test_dataset = create_deid_dataset(data_dict, tokenizer)
 
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-    logger.warning(f'Running using {device}.')
+    logger.info(f'Running using {device}.')
 
-    # use token from HuggingFace -- if we make the models public, will be unnecessary
-    # login()
     model = AutoModelForTokenClassification.from_pretrained(modelDir)
 
     annotations = annotate(model, test_dataset, device)

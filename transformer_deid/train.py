@@ -64,7 +64,7 @@ def train(train_data_dict, architecture, epochs, out_dir):
     seed_everything(42)
 
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-    logger.warning(f'Running using {device}.')
+    logger.info(f'Running using {device}.')
 
     load_model, tokenizer, baseArchitecture = which_transformer_arch(
         architecture)
