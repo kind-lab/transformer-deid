@@ -11,7 +11,16 @@ try:
 except:
     from label import Label
 
+class DuplicateFilter(logging.Filter):
+    def filter(self, record):
+        current_log = (record.module, record.levelno, record.msg)
+        if current_log != getattr(self, "last_log", None):
+            self.last_log = current_log
+            return True
+        return False
+
 logger = logging.getLogger(__name__)
+logger.addFilter(DuplicateFilter())
 
 
 def encode_tags(tags, encodings, tag2id):
@@ -205,7 +214,6 @@ def encodings_to_label_list(pred_entities, encoding, id2label=None):
     """
     labels = []
 
-    # TODO: move logging to annotate function to prevent repetition of message? or make a wrapper for this function?
     if id2label is None:
         if type(pred_entities[0]) is np.int64:
             logger.error('Passed predictions are type int not str and id2label is not passed as an argument.')
@@ -219,8 +227,7 @@ def encodings_to_label_list(pred_entities, encoding, id2label=None):
             logger.warning('Using id2label to convert integer predictions to entity type.')
             pred_entities = [id2label[id] for id in pred_entities]
         elif type(pred_entities[0]) is str:
-            # logger.warning('Ignoring passed argument id2label.')
-            pass
+            logger.warning('Ignoring passed argument id2label.')
         else:
             logger.error(f'Passed predictions are of type {type(pred_entities[0])}, which is unsupported.')
 
