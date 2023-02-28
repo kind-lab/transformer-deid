@@ -5,11 +5,7 @@ import copy
 from typing import List, Optional, Union, TextIO
 
 from tqdm import tqdm
-# TODO: fix this monstrosity
-try:
-    from transformer_deid.label import Label
-except:
-    from label import Label
+from transformer_deid.label import Label
 
 class DuplicateFilter(logging.Filter):
     def filter(self, record):
