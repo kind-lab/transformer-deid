@@ -134,9 +134,7 @@ def create_deid_dataset(data_dict, tokenizer, label2id=None) -> DeidDataset:
 
 def get_label_map(transform):
     """ Gets dictionary of labels to convert from specific labels (may differ across datasets) to more general labels. """
-    # TODO: fix this. open_text is going to kill me.
-    # with open_text('transformer_deid', 'label.json') as fp:
-    with open('transformer_deid/label.json') as fp:
+    with open_text('transformer_deid', 'label.json') as fp:
         label_map = json.load(fp)
 
     # label_membership has different label transforms as keys
