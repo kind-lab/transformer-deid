@@ -1,23 +1,17 @@
 name: transformer-deid
 channels:
-  - defaults
   - conda-forge
+  - defaults
   - pytorch
   - nvidia
 dependencies:
-  - jupyter
+  - python=3.10
   - nltk
   - cudatoolkit
-  - mpmath
-  - numpy
   - pandas
   - pytest
   - pytorch
   - scikit-learn
-  - spacy
-  - sympy
-  - tqdm
-  - datasets
   - transformers
   - tokenizers
   - yapf
