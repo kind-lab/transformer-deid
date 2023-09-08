@@ -1,0 +1,19 @@
+cff-version: 1.0.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: Moore
+    given-names: Callandra
+    orcid: https://orcid.org/0009-0008-3801-3137
+  - family-names: Bulgarelli
+    given-names: Lucas
+    orcid: https://orcid.org/0000-0001-5456-2170
+  - family-names: Pollard
+    given-names: Tom
+    orcid: https://orcid.org/0000-0002-5676-7898
+  - family-names: Johnson
+    given-names: Alistair
+    orcid: https://orcid.org/0000-0002-8735-3014
+title: "Transformer-DeID"
+version: 1.0.0
+doi: 
+date-released: 2023-09-08
